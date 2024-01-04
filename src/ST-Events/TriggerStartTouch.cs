@@ -139,10 +139,8 @@ public partial class SurfTimer
                         player.HUD.DisplayCheckpointMessages(PluginPrefix);
 
                         // store the checkpoint in the player's current run checkpoints used for Checkpoint functionality
-                        Checkpoint cp2 = new Checkpoint(0,
-                                                        stage,
+                        Checkpoint cp2 = new Checkpoint(stage,
                                                         player.Timer.Ticks,
-                                                        0,
                                                         velocity_x,
                                                         velocity_y,
                                                         velocity_z,
@@ -178,10 +176,8 @@ public partial class SurfTimer
                         player.HUD.DisplayCheckpointMessages(PluginPrefix);
 
                         // store the checkpoint in the player's current run checkpoints used for Checkpoint functionality
-                        Checkpoint cp2 = new Checkpoint(0,
-                                                        checkpoint,
+                        Checkpoint cp2 = new Checkpoint(checkpoint,
                                                         player.Timer.Ticks,
-                                                        0,
                                                         velocity_x,
                                                         velocity_y,
                                                         velocity_z,

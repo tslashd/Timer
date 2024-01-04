@@ -51,9 +51,9 @@ internal class CurrentRun
 // To-do: add `Type`
 internal class PersonalBest
 {
-    public int ID { get; set; }
+    public int ID { get; set; } = -1; // Exclude from constructor, retrieve from Database when loading/saving
     public int Ticks { get; set; }
-    public int Rank { get; set; }
+    public int Rank { get; set; } = -1; // Exclude from constructor, retrieve from Database when loading/saving
     public Dictionary<int, Checkpoint> Checkpoint { get; set; }
     // public int Type { get; set; }
     public float StartVelX { get; set; }
@@ -66,11 +66,9 @@ internal class PersonalBest
     // Add other properties as needed
 
     // Constructor
-    public PersonalBest(int id, int runTime, int rank, float startVelX, float startVelY, float startVelZ, float endVelX, float endVelY, float endVelZ, int runDate)
+    public PersonalBest(int runTime, float startVelX, float startVelY, float startVelZ, float endVelX, float endVelY, float endVelZ, int runDate)
     {
-        ID = id;
         Ticks = runTime; // To-do: what type of value we use here? DB uses DECIMAL but `.Tick` is int???
-        Rank = rank;
         Checkpoint = new Dictionary<int, Checkpoint>();
         // Type = type;
         StartVelX = startVelX;
@@ -138,10 +136,8 @@ internal class PersonalBest
             Console.WriteLine($"sVelY {results.GetFloat("start_vel_y")} ");
             #endif
 
-            Checkpoint cp = new(results.GetInt32("id"),
-                                results.GetInt32("cp"),
+            Checkpoint cp = new(results.GetInt32("cp"),
                                 results.GetInt32("run_time"),   // To-do: what type of value we use here? DB uses DECIMAL but `.Tick` is int???
-                                0, // To-do: Rank # goes here
                                 results.GetFloat("start_vel_x"),
                                 results.GetFloat("start_vel_y"),
                                 results.GetFloat("start_vel_z"),
@@ -151,6 +147,9 @@ internal class PersonalBest
                                 results.GetInt32("run_date"),
                                 results.GetFloat("end_touch"),
                                 results.GetInt32("attempts"));
+            cp.ID = results.GetInt32("id");
+            // To-do: cp.ID = calculate Rank # from DB
+
             Checkpoint[cp.CP] = cp;
 
             #if DEBUG
@@ -246,7 +245,7 @@ internal class Checkpoint : PersonalBest
     public float EndTouch { get; set; }
     public int Attempts { get; set; }
 
-    public Checkpoint(int id, int cp, int runTime, int rank, float startVelX, float startVelY, float startVelZ, float endVelX, float endVelY, float endVelZ, int runDate, float endTouch, int attempts) : base(id, runTime, rank, startVelX, startVelY, startVelZ, endVelX, endVelY, endVelZ, runDate)
+    public Checkpoint(int cp, int runTime, float startVelX, float startVelY, float startVelZ, float endVelX, float endVelY, float endVelZ, int runDate, float endTouch, int attempts) : base(runTime, startVelX, startVelY, startVelZ, endVelX, endVelY, endVelZ, runDate)
     {
         CP = cp;
         EndTouch = endTouch;
@@ -269,7 +268,7 @@ internal class PlayerStats
     // Here we can loop through all available styles at some point and initialize them
     public PlayerStats()
     {
-        PB[0] = new PersonalBest(-1, 0, 0, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0);
+        PB[0] = new PersonalBest(0, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0);
         // Add more styles as needed
     }
 
