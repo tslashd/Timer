@@ -139,16 +139,18 @@ public partial class SurfTimer
                         player.HUD.DisplayCheckpointMessages(PluginPrefix);
 
                         // store the checkpoint in the player's current run checkpoints used for Checkpoint functionality
-                        Checkpoint cp2 = new Checkpoint(stage,
-                                                        player.Timer.Ticks, // To-do: what type of value we use here? DB uses DECIMAL but `.Tick` is int???
-                                                        player.Timer.Ticks, // To-do: this was supposed to be the ticks but that is used for run_time for HUD
+                        Checkpoint cp2 = new Checkpoint(0,
+                                                        stage,
+                                                        player.Timer.Ticks,
+                                                        0,
                                                         velocity_x,
                                                         velocity_y,
                                                         velocity_z,
                                                         -1.0f,
                                                         -1.0f,
                                                         -1.0f,
-                                                        -1.0f,
+                                                        0,
+                                                        0,
                                                         0);
                         player.Stats.ThisRun.Checkpoint[stage] = cp2;
                     }
@@ -176,15 +178,17 @@ public partial class SurfTimer
                         player.HUD.DisplayCheckpointMessages(PluginPrefix);
 
                         // store the checkpoint in the player's current run checkpoints used for Checkpoint functionality
-                        Checkpoint cp2 = new Checkpoint(checkpoint,
-                                                        player.Timer.Ticks, // To-do: what type of value we use here? DB uses DECIMAL but `.Tick` is int???
-                                                        player.Timer.Ticks, // To-do: this was supposed to be the ticks but that is used for run_time for HUD
+                        Checkpoint cp2 = new Checkpoint(0,
+                                                        checkpoint,
+                                                        player.Timer.Ticks,
+                                                        0,
                                                         velocity_x,
                                                         velocity_y,
                                                         velocity_z,
                                                         -1.0f,
                                                         -1.0f,
                                                         -1.0f,
+                                                        0,
                                                         -1.0f,
                                                         0);
                         player.Stats.ThisRun.Checkpoint[checkpoint] = cp2;
