@@ -113,8 +113,8 @@ public partial class SurfTimer
 
             // To-do: hardcoded Style value
             // Load MapTimes for the player's PB and their Checkpoints
-            playerList[player.UserId ?? 0].Stats.LoadMapTimesData(playerList[player.UserId ?? 0], DB); // Will reload PB and Checkpoints for the player for all styles
-            playerList[player.UserId ?? 0].Stats.LoadCheckpointsData(DB); // To-do: This really should go inside `LoadMapTimesData` imo cuz here we hardcoding load for Style 0
+            Task.Run(async () => await playerList[player.UserId ?? 0].Stats.LoadMapTimesData(playerList[player.UserId ?? 0], DB)); // Will reload PB and Checkpoints for the player for all styles
+            Task.Run(async () => await playerList[player.UserId ?? 0].Stats.LoadCheckpointsData(DB)); // To-do: This really should go inside `LoadMapTimesData` imo cuz here we hardcoding load for Style 0
 
             // Print join messages
             Server.PrintToChatAll($"{PluginPrefix} {ChatColors.Green}{player.PlayerName}{ChatColors.Default} has connected from {ChatColors.Lime}{playerList[player.UserId ?? 0].Profile.Country}{ChatColors.Default}.");
