@@ -63,4 +63,86 @@ internal class PlayerStats
         }
         playerStats.Close();
     }
+
+    /// <summary>
+    /// Executes the DB query to get all the checkpoints and store them in the Checkpoint dictionary
+    /// </summary>
+    public void LoadCheckpointsData(TimerDatabase DB)
+    {
+        Task<MySqlDataReader> dbTask = DB.Query($"SELECT * FROM `Checkpoints` WHERE `maptime_id` = {PB[0].ID};");
+        MySqlDataReader results = dbTask.Result;
+        if (PB[0] == null)
+        {
+            #if DEBUG
+            Console.WriteLine("CS2 Surf ERROR >> internal class PlayerStats -> LoadCheckpointsData -> PersonalBest object is null.");
+            #endif
+
+            results.Close();
+            return;
+        }
+
+        if (PB[0].Checkpoint == null)
+        {
+            #if DEBUG
+            Console.WriteLine($"CS2 Surf DEBUG >> internal class PlayerStats -> LoadCheckpointsData -> PB Checkpoints list is not initialized.");
+            #endif
+
+            PB[0].Checkpoint = new Dictionary<int, Checkpoint>(); // Initialize if null
+        }
+
+        #if DEBUG
+        Console.WriteLine($"this.Checkpoint.Count {PB[0].Checkpoint.Count} ");
+        Console.WriteLine($"this.ID {PB[0].ID} ");
+        Console.WriteLine($"this.Ticks {PB[0].Ticks} ");
+        Console.WriteLine($"this.RunDate {PB[0].RunDate} ");
+        #endif
+
+        if (!results.HasRows)
+        {
+            #if DEBUG
+            Console.WriteLine($"CS2 Surf DEBUG >> internal class Checkpoint : PersonalBest -> LoadCheckpointsData -> No checkpoints found for this mapTimeId {PB[0].ID}.");
+            #endif
+
+            results.Close();
+            return;
+        }
+
+        #if DEBUG
+        Console.WriteLine($"======== CS2 Surf DEBUG >> internal class Checkpoint : PersonalBest -> LoadCheckpointsData -> Checkpoints found for this mapTimeId");
+        #endif
+
+        while (results.Read())
+        {
+            #if DEBUG
+            Console.WriteLine($"cp {results.GetInt32("cp")} ");
+            Console.WriteLine($"run_time {results.GetFloat("run_time")} ");
+            Console.WriteLine($"sVelX {results.GetFloat("start_vel_x")} ");
+            Console.WriteLine($"sVelY {results.GetFloat("start_vel_y")} ");
+            #endif
+
+            Checkpoint cp = new(results.GetInt32("cp"),
+                                results.GetInt32("run_time"),   // To-do: what type of value we use here? DB uses DECIMAL but `.Tick` is int???
+                                results.GetFloat("start_vel_x"),
+                                results.GetFloat("start_vel_y"),
+                                results.GetFloat("start_vel_z"),
+                                results.GetFloat("end_vel_x"),
+                                results.GetFloat("end_vel_y"),
+                                results.GetFloat("end_vel_z"),
+                                results.GetFloat("end_touch"),
+                                results.GetInt32("attempts"));
+            cp.ID = results.GetInt32("cp");
+            // To-do: cp.ID = calculate Rank # from DB
+
+            PB[0].Checkpoint[cp.CP] = cp;
+
+            #if DEBUG
+            Console.WriteLine($"======= CS2 Surf DEBUG >> internal class Checkpoint : PersonalBest -> LoadCheckpointsData -> Loaded CP {cp.CP} with RunTime {cp.Ticks}.");
+            #endif
+        }
+        results.Close();
+
+        #if DEBUG
+        Console.WriteLine($"======= CS2 Surf DEBUG >> internal class Checkpoint : PersonalBest -> LoadCheckpointsData -> Checkpoints loaded from DB. Count: {PB[0].Checkpoint.Count}");
+        #endif
+    }
 }
