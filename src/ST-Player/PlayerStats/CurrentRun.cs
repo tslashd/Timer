@@ -77,15 +77,15 @@ internal class CurrentRun
         foreach (var item in player.Stats.ThisRun.Checkpoint)
         {
             int cp = item.Key;
-            int ticks = item.Value.Ticks;
-            int runTime = item.Value.Ticks / 64; // Runtime in decimal
-            double startVelX = item.Value.StartVelX;
-            double startVelY = item.Value.StartVelY;
-            double startVelZ = item.Value.StartVelZ;
-            double endVelX = item.Value.EndVelX;
-            double endVelY = item.Value.EndVelY;
-            double endVelZ = item.Value.EndVelZ;
-            int attempts = item.Value.Attempts;
+            int ticks = item.Value!.Ticks;
+            int runTime = item.Value!.Ticks / 64; // Runtime in decimal
+            double startVelX = item.Value!.StartVelX;
+            double startVelY = item.Value!.StartVelY;
+            double startVelZ = item.Value!.StartVelZ;
+            double endVelX = item.Value!.EndVelX;
+            double endVelY = item.Value!.EndVelY;
+            double endVelZ = item.Value!.EndVelZ;
+            int attempts = item.Value!.Attempts;
 
             #if DEBUG
             Console.WriteLine($"CP: {cp} | MapTime ID: {item.Value.ID} | Time: {runTime} | Ticks: {ticks} | startVelX: {startVelX} | startVelY: {startVelY} | startVelZ: {startVelZ} | endVelX: {endVelX} | endVelY: {endVelY} | endVelZ: {endVelZ}");
