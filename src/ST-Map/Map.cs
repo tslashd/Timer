@@ -58,7 +58,11 @@ public class Map
                 {
                     foreach (CBaseEntity teleport in teleports)
                     {
-                        if (teleport.Entity!.Name != null && IsInZone(trigger.AbsOrigin!, trigger.Collision.BoundingRadius, teleport.AbsOrigin!))
+                        if (teleport.Entity!.Name != null && 
+                            (IsInZone(trigger.AbsOrigin!, trigger.Collision.BoundingRadius, teleport.AbsOrigin!) || 
+                            teleport.Entity!.Name.Contains("map_start") || 
+                            teleport.Entity!.Name.Contains("stage1_start") || 
+                            teleport.Entity!.Name.Contains("s1_start")))
                         {
                             this.StartZone = new Vector(teleport.AbsOrigin!.X, teleport.AbsOrigin!.Y, teleport.AbsOrigin!.Z);
                             this.StartZoneAngles = new QAngle(teleport.AbsRotation!.X, teleport.AbsRotation!.Y, teleport.AbsRotation!.Z);
@@ -76,13 +80,15 @@ public class Map
                 // Stage start zones
                 else if (Regex.Match(trigger.Entity.Name, "^s([1-9][0-9]?|tage[1-9][0-9]?)_start$").Success) 
                 {
+                    int stage = Int32.Parse(Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value);
                     // Find an info_destination_teleport inside this zone to grab angles from
                     foreach (CBaseEntity teleport in teleports)
                     {
-                        if (teleport.Entity!.Name != null && IsInZone(trigger.AbsOrigin!, trigger.Collision.BoundingRadius, teleport.AbsOrigin!))
+                        if (teleport.Entity!.Name != null && 
+                            (IsInZone(trigger.AbsOrigin!, trigger.Collision.BoundingRadius, teleport.AbsOrigin!) || Int32.Parse(Regex.Match(teleport.Entity.Name, "[0-9][0-9]?").Value) == stage))
                         {
-                            this.StageStartZone[Int32.Parse(Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value) - 1] = new Vector(teleport.AbsOrigin!.X, teleport.AbsOrigin!.Y, teleport.AbsOrigin!.Z);
-                            this.StageStartZoneAngles[Int32.Parse(Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value) - 1] = new QAngle(teleport.AbsRotation!.X, teleport.AbsRotation!.Y, teleport.AbsRotation!.Z);
+                            this.StageStartZone[stage - 1] = new Vector(teleport.AbsOrigin!.X, teleport.AbsOrigin!.Y, teleport.AbsOrigin!.Z);
+                            this.StageStartZoneAngles[stage - 1] = new QAngle(teleport.AbsRotation!.X, teleport.AbsRotation!.Y, teleport.AbsRotation!.Z);
                             this.Stages++; // Count stage zones for the map to populate DB
                             break;
                         }
@@ -99,13 +105,15 @@ public class Map
                 // Bonus start zones
                 else if (Regex.Match(trigger.Entity.Name, "^b([1-9][0-9]?|onus[1-9][0-9]?)_start$").Success) 
                 {
+                    int bonus = Int32.Parse(Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value);
                     // Find an info_destination_teleport inside this zone to grab angles from
                     foreach (CBaseEntity teleport in teleports)
                     {
-                        if (teleport.Entity!.Name != null && IsInZone(trigger.AbsOrigin!, trigger.Collision.BoundingRadius, teleport.AbsOrigin!))
+                        if (teleport.Entity!.Name != null && 
+                            (IsInZone(trigger.AbsOrigin!, trigger.Collision.BoundingRadius, teleport.AbsOrigin!) || Int32.Parse(Regex.Match(teleport.Entity.Name, "[0-9][0-9]?").Value) == bonus))
                         {
-                            this.BonusStartZone[Int32.Parse(Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value) - 1] = new Vector(teleport.AbsOrigin!.X, teleport.AbsOrigin!.Y, teleport.AbsOrigin!.Z);
-                            this.BonusStartZoneAngles[Int32.Parse(Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value) - 1] = new QAngle(teleport.AbsRotation!.X, teleport.AbsRotation!.Y, teleport.AbsRotation!.Z);
+                            this.BonusStartZone[bonus - 1] = new Vector(teleport.AbsOrigin!.X, teleport.AbsOrigin!.Y, teleport.AbsOrigin!.Z);
+                            this.BonusStartZoneAngles[bonus - 1] = new QAngle(teleport.AbsRotation!.X, teleport.AbsRotation!.Y, teleport.AbsRotation!.Z);
                             this.Bonuses++; // Count bonus zones for the map to populate DB
                             break;
                         }
