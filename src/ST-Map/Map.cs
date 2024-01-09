@@ -61,9 +61,9 @@ public class Map
                     {
                         if (teleport.Entity!.Name != null && 
                             (IsInZone(trigger.AbsOrigin!, trigger.Collision.BoundingRadius, teleport.AbsOrigin!) || 
-                            teleport.Entity!.Name.Contains("map_start") || 
-                            teleport.Entity!.Name.Contains("stage1_start") || 
-                            teleport.Entity!.Name.Contains("s1_start")))
+                            teleport.Entity!.Name.Contains("spawn_map_start") || 
+                            teleport.Entity!.Name.Contains("spawn_stage1_start") || 
+                            teleport.Entity!.Name.Contains("spawn_s1_start")))
                         {
                             this.StartZone = new Vector(teleport.AbsOrigin!.X, teleport.AbsOrigin!.Y, teleport.AbsOrigin!.Z);
                             this.StartZoneAngles = new QAngle(teleport.AbsRotation!.X, teleport.AbsRotation!.Y, teleport.AbsRotation!.Z);
@@ -94,7 +94,7 @@ public class Map
                     foreach (CBaseEntity teleport in teleports)
                     {
                         if (teleport.Entity!.Name != null && 
-                            (IsInZone(trigger.AbsOrigin!, trigger.Collision.BoundingRadius, teleport.AbsOrigin!) || Int32.Parse(Regex.Match(teleport.Entity.Name, "[0-9][0-9]?").Value) == stage))
+                            (IsInZone(trigger.AbsOrigin!, trigger.Collision.BoundingRadius, teleport.AbsOrigin!) || (Regex.Match(teleport.Entity.Name, "^spawn_s([1-9][0-9]?|tage[1-9][0-9]?)_start$").Success && Int32.Parse(Regex.Match(teleport.Entity.Name, "[0-9][0-9]?").Value) == stage)))
                         {
                             this.StageStartZone[stage - 1] = new Vector(teleport.AbsOrigin!.X, teleport.AbsOrigin!.Y, teleport.AbsOrigin!.Z);
                             this.StageStartZoneAngles[stage - 1] = new QAngle(teleport.AbsRotation!.X, teleport.AbsRotation!.Y, teleport.AbsRotation!.Z);
@@ -127,7 +127,7 @@ public class Map
                     foreach (CBaseEntity teleport in teleports)
                     {
                         if (teleport.Entity!.Name != null && 
-                            (IsInZone(trigger.AbsOrigin!, trigger.Collision.BoundingRadius, teleport.AbsOrigin!) || Int32.Parse(Regex.Match(teleport.Entity.Name, "[0-9][0-9]?").Value) == bonus))
+                            (IsInZone(trigger.AbsOrigin!, trigger.Collision.BoundingRadius, teleport.AbsOrigin!) || (Regex.Match(teleport.Entity.Name, "^spawn_b([1-9][0-9]?|onus[1-9][0-9]?)_start$").Success && Int32.Parse(Regex.Match(teleport.Entity.Name, "[0-9][0-9]?").Value) == bonus)))
                         {
                             this.BonusStartZone[bonus - 1] = new Vector(teleport.AbsOrigin!.X, teleport.AbsOrigin!.Y, teleport.AbsOrigin!.Z);
                             this.BonusStartZoneAngles[bonus - 1] = new QAngle(teleport.AbsRotation!.X, teleport.AbsRotation!.Y, teleport.AbsRotation!.Z);
