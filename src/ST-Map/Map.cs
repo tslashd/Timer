@@ -13,7 +13,7 @@ internal class Map
     public string Name {get; set;} = "";
     public string Author {get; set;} = "";
     public int Tier {get; set;} = 0;
-    public int Stages {get; set;} = 0;
+    public int Stages {get; set;} = 1; // Should be 1 Length start from 1 not 0
     public int Checkpoints {get; set;} = 0;
     public int Bonuses {get; set;} = 0;
     public bool Ranked {get; set;} = false;
