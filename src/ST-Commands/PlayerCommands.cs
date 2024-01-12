@@ -61,7 +61,7 @@ public partial class SurfTimer
             player.PrintToChat($"{PluginPrefix} {ChatColors.Red}Invalid arguments. Usage: {ChatColors.Green}!s <stage>");
             return;
         }
-        else if (CurrentMap.Stages <= 1)
+        else if (CurrentMap.Stages <= 0)
         {
             player.PrintToChat($"{PluginPrefix} {ChatColors.Red}This map has no stages.");
             return;
@@ -77,11 +77,53 @@ public partial class SurfTimer
             playerList[player.UserId ?? 0].Timer.Reset();
             playerList[player.UserId ?? 0].Timer.IsStageMode = true;
 
-            // To-do: If you run this while you're in the start zone, endtouch for the start zone runs after you've teleported
+            // To-do: If you run this while you>'re in the start zone, endtouch for the start zone runs after you've teleported
             //        causing the timer to start. This needs to be fixed.
         }
 
         else 
             player.PrintToChat($"{PluginPrefix} {ChatColors.Red}Invalid stage provided. Usage: {ChatColors.Green}!s <stage>");
+    }
+
+    // // Test command
+    // [ConsoleCommand("css_savereplay", "Test")]
+    // public void SaveReplay(CCSPlayerController? player, CommandInfo command) {
+    //     if(player == null)
+    //         return;
+
+    //     foreach(var p in playerList.Values) {
+    //         if(p.Replay.Frames.Count() > 0) {
+    //             p.Replay.StopRecording();
+    //             p.Replay.SaveReplayData(p, DB!);
+    //             break;
+    //         }
+    //     }
+    // }
+
+    // Test command
+    [ConsoleCommand("css_replay", "Test")]
+    public void PlayReplay(CCSPlayerController? player, CommandInfo command) {
+        if(player == null)
+            return;
+
+        foreach(var p in playerList.Values) {
+            p.Replay.StartPlaying(p, DB!);
+        }
+    }
+
+    [ConsoleCommand("css_pausereplay", "Test")]
+    [ConsoleCommand("css_rp", "Test")]
+    public void PauseReplay(CCSPlayerController? player, CommandInfo command) {
+        if(player == null)
+            return;
+
+        foreach(var p in playerList.Values) {
+            if (p.Replay.IsPlaying) {
+                if(p.Replay.IsPlayingPaused)
+                    p.Replay.Resume();
+                else
+                    p.Replay.Pause();
+            }
+        }
     }
 }

@@ -13,7 +13,7 @@ internal class Map
     public string Name {get; set;} = "";
     public string Author {get; set;} = "";
     public int Tier {get; set;} = 0;
-    public int Stages {get; set;} = 1; // Should be 1 Length start from 1 not 0
+    public int Stages {get; set;} = 0;
     public int Checkpoints {get; set;} = 0;
     public int Bonuses {get; set;} = 0;
     public bool Ranked {get; set;} = false;
@@ -150,7 +150,7 @@ internal class Map
             }
         }
         Console.WriteLine($"[CS2 Surf] Identifying start zone: {this.StartZone.X},{this.StartZone.Y},{this.StartZone.Z}\nIdentifying end zone: {this.EndZone.X},{this.EndZone.Y},{this.EndZone.Z}");
-
+        this.Stages++; // Accounting for index starts from 0
         // Gather map information OR create entry
         Task<MySqlDataReader> reader = DB.Query($"SELECT * FROM Maps WHERE name='{MySqlHelper.EscapeString(Name)}'");
         MySqlDataReader mapData = reader.Result;

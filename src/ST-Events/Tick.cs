@@ -1,3 +1,6 @@
+using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Modules.Utils;
+
 namespace SurfTimer;
 
 public partial class SurfTimer
@@ -8,6 +11,7 @@ public partial class SurfTimer
         {
             player.Timer.Tick();
             player.HUD.Display();
+            player.Replay.Tick(player);
         }
     }
 }

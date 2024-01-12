@@ -46,11 +46,18 @@ public partial class SurfTimer
                 // Map end zones -- hook into map_end
                 if (trigger.Entity.Name == "map_end")
                 {
+                    
+
                     player.Controller.PrintToCenter($"Map End");
                     // MAP END ZONE
                     if (player.Timer.IsRunning)
                     {
                         player.Timer.Stop();
+
+                        // If in replay playing mode, then should not count the time
+                        if(player.Replay.IsPlaying)
+                            return HookResult.Continue;
+
                         player.Stats.ThisRun.Ticks = player.Timer.Ticks; // End time for the run
                         player.Stats.ThisRun.EndVelX = velocity_x; // End pre speed for the run
                         player.Stats.ThisRun.EndVelY = velocity_y; // End pre speed for the run
@@ -93,6 +100,9 @@ public partial class SurfTimer
                         player.Stats.ThisRun.SaveCurrentRunCheckpoints(player, DB); // Save this run's checkpoints
                         player.Stats.LoadCheckpointsData(DB); // Reload checkpoints for the run - we should really have this in `SaveMapTime` as well but we don't re-load PB data inside there so we need to do it here
                         CurrentMap.GetMapRecordAndTotals(DB); // Reload the Map record and totals for the HUD
+
+                        // Replay - Add end buffer for replay
+                        AddTimer(3f, () => player.Replay.SaveReplayData(player, DB));
                     }
 
                     #if DEBUG
@@ -105,6 +115,10 @@ public partial class SurfTimer
                         trigger.Entity.Name.Contains("s1_start") ||
                         trigger.Entity.Name.Contains("stage1_start"))
                 {
+                    // Replay
+                    if(!player.Replay.IsPlaying)
+                        player.Replay.StartRecording();
+
                     player.Timer.Reset();
                     player.Stats.ThisRun.Checkpoint.Clear(); // I have the suspicion that the `Timer.Reset()` does not properly reset this object :thonk:
                     player.Controller.PrintToCenter($"Map Start ({trigger.Entity.Name})");
