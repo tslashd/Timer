@@ -42,8 +42,9 @@ public partial class SurfTimer
                     trigger.Entity.Name.Contains("stage1_start")) 
                 {
                     // Replay
-                    if(player.Replay.IsRecording) {
-                        player.Replay.Frames.RemoveRange(0, Math.Max(0, player.Replay.Frames.Count()-(64*3))); // Would like for someone to fact check the math :)
+                    if(player.ReplayRecorder.IsRecording) {
+                        // Saveing 2seconds before leaving the start zone
+                        player.ReplayRecorder.Frames.RemoveRange(0, Math.Max(0, player.ReplayRecorder.Frames.Count - (64*2))); // Would like for someone to fact check the math :)
                     }
 
                     // MAP START ZONE

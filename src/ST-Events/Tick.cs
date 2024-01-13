@@ -11,7 +11,8 @@ public partial class SurfTimer
         {
             player.Timer.Tick();
             player.HUD.Display();
-            player.Replay.Tick(player);
+            player.ReplayRecorder.Tick(player);
         }
+        CurrentMap.ReplayBot.Tick();
     }
 }

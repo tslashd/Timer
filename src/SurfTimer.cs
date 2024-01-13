@@ -47,7 +47,7 @@ public partial class SurfTimer : BasePlugin
     public string PluginPrefix => $"[{ChatColors.DarkBlue}CS2 Surf{ChatColors.Default}]"; // To-do: make configurable
 
     // Globals
-    private Dictionary<int, Player> playerList = new Dictionary<int, Player>(); // This can probably be done way better, revisit
+    private Dictionary<int, Player> playerList = new Dictionary<int, Player>(); // This can probably be done way better, revisit 
     internal TimerDatabase? DB = new TimerDatabase();
     public string PluginPath = Server.GameDirectory + "/csgo/addons/counterstrikesharp/plugins/SurfTimer/";
     internal Map CurrentMap = null!;

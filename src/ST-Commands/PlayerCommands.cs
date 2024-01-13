@@ -103,27 +103,26 @@ public partial class SurfTimer
     // Test command
     [ConsoleCommand("css_replay", "Test")]
     public void PlayReplay(CCSPlayerController? player, CommandInfo command) {
-        if(player == null)
+        if(CurrentMap.ReplayBot.Controller == null)
             return;
 
-        foreach(var p in playerList.Values) {
-            p.Replay.StartPlaying(p, DB!);
-        }
+        CurrentMap.ReplayBot.Start();
     }
 
-    [ConsoleCommand("css_pausereplay", "Test")]
+    [ConsoleCommand("css_replaypause", "Test")]
     [ConsoleCommand("css_rp", "Test")]
     public void PauseReplay(CCSPlayerController? player, CommandInfo command) {
-        if(player == null)
+        if(CurrentMap.ReplayBot.Controller == null || !CurrentMap.ReplayBot.IsPlaying)
             return;
 
-        foreach(var p in playerList.Values) {
-            if (p.Replay.IsPlaying) {
-                if(p.Replay.IsPlayingPaused)
-                    p.Replay.Resume();
-                else
-                    p.Replay.Pause();
-            }
-        }
+        CurrentMap.ReplayBot.Pause();
+    }
+
+    [ConsoleCommand("css_loadreplay", "Test")]
+    public void LoadReplay(CCSPlayerController? player, CommandInfo command) {
+        if(CurrentMap.ReplayBot.Controller == null)
+            return;
+
+        CurrentMap.ReplayBot.LoadReplayData(DB!, CurrentMap.ID, CurrentMap.WR[0].ID);
     }
 }

@@ -17,8 +17,16 @@ public partial class SurfTimer
         Console.WriteLine($"CS2 Surf DEBUG >> OnPlayerConnect -> {player.PlayerName} / {player.UserId} / {player.SteamID}");
         #endif
 
-        if (player.IsBot || !player.IsValid)
+        Console.WriteLine($"Bot Diff: {player.PawnBotDifficulty}");
+
+        if (player.PawnBotDifficulty != -1 || !player.IsValid)
         {
+            System.Console.WriteLine($"BotController: {CurrentMap.ReplayBot.Controller}");
+            if (player.IsBot && CurrentMap.ReplayBot.Controller == null) {
+                CurrentMap.ReplayBot.Controller = player;
+                Console.WriteLine("DEBUG >> Successfully connected Bot to ReplayPlayer.Controller");
+            }
+
             return HookResult.Continue;
         }
         else
@@ -108,7 +116,7 @@ public partial class SurfTimer
                                                     Profile, CurrentMap);
             
             #if DEBUG
-            Console.WriteLine($"=================================== SELECT * FROM `MapTimes` WHERE `player_id` = {playerList[player.UserId ?? 0].Profile.ID} AND `map_id` = {CurrentMap.ID};");
+            Console.WriteLine($"=================================== SELECT * FROM `MapTimes` WHERE `player_id` = {playerList[player.UserId ?? 0].Profile!.ID} AND `map_id` = {CurrentMap.ID};");
             #endif
 
             // To-do: hardcoded Style value
@@ -117,8 +125,8 @@ public partial class SurfTimer
             playerList[player.UserId ?? 0].Stats.LoadCheckpointsData(DB); // To-do: This really should go inside `LoadMapTimesData` imo cuz here we hardcoding load for Style 0
 
             // Print join messages
-            Server.PrintToChatAll($"{PluginPrefix} {ChatColors.Green}{player.PlayerName}{ChatColors.Default} has connected from {ChatColors.Lime}{playerList[player.UserId ?? 0].Profile.Country}{ChatColors.Default}.");
-            Console.WriteLine($"[CS2 Surf] {player.PlayerName} has connected from {playerList[player.UserId ?? 0].Profile.Country}.");
+            Server.PrintToChatAll($"{PluginPrefix} {ChatColors.Green}{player.PlayerName}{ChatColors.Default} has connected from {ChatColors.Lime}{playerList[player.UserId ?? 0].Profile!.Country}{ChatColors.Default}.");
+            Console.WriteLine($"[CS2 Surf] {player.PlayerName} has connected from {playerList[player.UserId ?? 0].Profile!.Country}.");
             return HookResult.Continue;
         }
     }
@@ -145,9 +153,9 @@ public partial class SurfTimer
             else
             {
                 // Update data in Player DB table
-                Task<int> updatePlayerTask = DB.Write($"UPDATE `Player` SET country = '{playerList[player.UserId ?? 0].Profile.Country}', " +
+                Task<int> updatePlayerTask = DB.Write($"UPDATE `Player` SET country = '{playerList[player.UserId ?? 0].Profile!.Country}', " +
                                                         $"`last_seen` = {(int)DateTimeOffset.UtcNow.ToUnixTimeSeconds()}, `connections` = `connections` + 1 " +
-                                                        $"WHERE `id` = {playerList[player.UserId ?? 0].Profile.ID} LIMIT 1;");
+                                                        $"WHERE `id` = {playerList[player.UserId ?? 0].Profile!.ID} LIMIT 1;");
                 if (updatePlayerTask.Result != 1)
                     throw new Exception($"CS2 Surf ERROR >> OnPlayerDisconnect -> Failed to update player data in database. Player: {player.PlayerName} ({player.SteamID})");
                 // Player disconnection to-do

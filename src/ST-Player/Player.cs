@@ -11,7 +11,7 @@ internal class Player
     public PlayerTimer Timer {get; set;}
     public PlayerStats Stats {get; set;}
     public PlayerHUD HUD {get; set;}
-    public PlayerReplay Replay { get; set; }
+    public ReplayRecorder ReplayRecorder { get; set; }
 
     // Player information
     public PlayerProfile Profile {get; set;}
@@ -29,7 +29,7 @@ internal class Player
 
         this.Timer = new PlayerTimer();
         this.Stats = new PlayerStats();
-        this.Replay = new PlayerReplay();
+        this.ReplayRecorder = new ReplayRecorder();
 
         this.HUD = new PlayerHUD(this);
         this.CurrMap = CurrMap;

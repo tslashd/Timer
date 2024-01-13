@@ -14,7 +14,7 @@ public partial class SurfTimer
         CBaseTrigger trigger = handler.GetParam<CBaseTrigger>(0);
         CBaseEntity entity = handler.GetParam<CBaseEntity>(1);
         CCSPlayerController client = new CCSPlayerController(new CCSPlayerPawn(entity.Handle).Controller.Value!.Handle);
-        if (client.IsBot || !client.IsValid || !client.PawnIsAlive)
+        if (!client.IsValid || !client.PawnIsAlive)
         {
             return HookResult.Continue;
         }
@@ -53,10 +53,6 @@ public partial class SurfTimer
                     if (player.Timer.IsRunning)
                     {
                         player.Timer.Stop();
-
-                        // If in replay playing mode, then should not count the time
-                        if(player.Replay.IsPlaying)
-                            return HookResult.Continue;
 
                         player.Stats.ThisRun.Ticks = player.Timer.Ticks; // End time for the run
                         player.Stats.ThisRun.EndVelX = velocity_x; // End pre speed for the run
@@ -102,7 +98,7 @@ public partial class SurfTimer
                         CurrentMap.GetMapRecordAndTotals(DB); // Reload the Map record and totals for the HUD
 
                         // Replay - Add end buffer for replay
-                        AddTimer(3f, () => player.Replay.SaveReplayData(player, DB));
+                        AddTimer(1.5f, () => player.ReplayRecorder.SaveReplayData(player, DB));
                     }
 
                     #if DEBUG
@@ -115,9 +111,7 @@ public partial class SurfTimer
                         trigger.Entity.Name.Contains("s1_start") ||
                         trigger.Entity.Name.Contains("stage1_start"))
                 {
-                    // Replay
-                    if(!player.Replay.IsPlaying)
-                        player.Replay.StartRecording();
+                    player.ReplayRecorder.Start();
 
                     player.Timer.Reset();
                     player.Stats.ThisRun.Checkpoint.Clear(); // I have the suspicion that the `Timer.Reset()` does not properly reset this object :thonk:
