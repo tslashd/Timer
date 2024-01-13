@@ -46,8 +46,6 @@ public partial class SurfTimer
                 // Map end zones -- hook into map_end
                 if (trigger.Entity.Name == "map_end")
                 {
-                    
-
                     player.Controller.PrintToCenter($"Map End");
                     // MAP END ZONE
                     if (player.Timer.IsRunning)
@@ -111,7 +109,7 @@ public partial class SurfTimer
                         trigger.Entity.Name.Contains("s1_start") ||
                         trigger.Entity.Name.Contains("stage1_start"))
                 {
-                    player.ReplayRecorder.Start();
+                    player.ReplayRecorder.Start(); // Start replay recording
 
                     player.Timer.Reset();
                     player.Stats.ThisRun.Checkpoint.Clear(); // I have the suspicion that the `Timer.Reset()` does not properly reset this object :thonk:

@@ -19,12 +19,14 @@ internal class ReplayPlayer
 
     public CCSPlayerController? Controller { get; set; }
 
-    public void ResetReplay() {
+    public void ResetReplay() 
+    {
         this.CurrentFrameTick = 0;
         this.FrameTickIncrement = 1;
     }
 
-    public void Reset() {
+    public void Reset() 
+    {
         this.IsPlaying = false;
         this.IsPaused = false;
 
@@ -35,24 +37,29 @@ internal class ReplayPlayer
         this.Controller = null;
     }
 
-    public void Start() {
+    public void Start() 
+    {
         this.IsPlaying = true;
     }
 
-    public void Stop() {
+    public void Stop() 
+    {
         this.IsPlaying = false;
     }
 
-    public void Pause() {
+    public void Pause() 
+    {
         if (this.IsPlaying)
             this.IsPaused = !this.IsPaused;
     }
 
-    public void Tick() {
+    public void Tick() 
+    {
         if (!this.IsPlaying || this.Controller == null)
             return;
 
-        if(this.CurrentFrameTick >= this.Frames.Count) {
+        if(this.CurrentFrameTick >= this.Frames.Count) 
+        {
             this.Stop();
             this.ResetReplay();
         }
@@ -64,20 +71,21 @@ internal class ReplayPlayer
             this.CurrentFrameTick = Math.Max(0, this.CurrentFrameTick + this.FrameTickIncrement);
     }
 
-        public void LoadReplayData(TimerDatabase DB, int map_id, int maptime_id = 0) {
+    public void LoadReplayData(TimerDatabase DB, int map_id, int maptime_id = 0) 
+    {
         // TODO: make query for wr too
         Task<MySqlDataReader> dbTask = DB.Query($"SELECT `replay_frames` FROM MapTimeReplay " +
-                                                    $"WHERE `map_id`={map_id} AND `maptime_id`={maptime_id} ");
+                                                $"WHERE `map_id`={map_id} AND `maptime_id`={maptime_id} ");
         MySqlDataReader mapTimeReplay = dbTask.Result;
-        if(!mapTimeReplay.HasRows) {
+        if(!mapTimeReplay.HasRows) 
+        {
             Console.WriteLine($"CS2 Surf DEBUG >> internal class PlayerReplay -> Load -> No replay data found for Player.");
         }
-        else {
-            JsonSerializerOptions options = new JsonSerializerOptions {
-                WriteIndented = false,
-                Converters = { new VectorConverter(), new QAngleConverter() }
-            };
-            while(mapTimeReplay.Read()) {
+        else 
+        {
+            JsonSerializerOptions options = new JsonSerializerOptions {WriteIndented = false, Converters = { new VectorConverter(), new QAngleConverter() }};
+            while(mapTimeReplay.Read()) 
+            {
                 string json = Compressor.Decompress(Encoding.UTF8.GetString((byte[])mapTimeReplay[0]));
                 this.Frames = JsonSerializer.Deserialize<List<ReplayFrame>>(json, options)!;
             }

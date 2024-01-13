@@ -4,7 +4,8 @@ using CounterStrikeSharp.API.Core;
 
 
 [Serializable]
-internal class ReplayFrame {
+internal class ReplayFrame 
+{
         public Vector Pos { get; set; } = new Vector(0, 0, 0);
         public QAngle Ang { get; set; } = new QAngle(0, 0, 0);
         public Vector Vel { get; set; } = new Vector(0, 0, 0);
@@ -12,4 +13,3 @@ internal class ReplayFrame {
         public uint Flags { get; set; }
         public MoveType_t MoveType { get; set; }
 }
-

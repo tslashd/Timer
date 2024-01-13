@@ -50,7 +50,6 @@ public partial class SurfTimer
         if (stage > CurrentMap.Stages - 1)
             stage = CurrentMap.Stages - 1;
 
-
         // Must be 1 argument
         if (command.ArgCount < 2 || stage < 0)
         {
@@ -77,7 +76,7 @@ public partial class SurfTimer
             playerList[player.UserId ?? 0].Timer.Reset();
             playerList[player.UserId ?? 0].Timer.IsStageMode = true;
 
-            // To-do: If you run this while you>'re in the start zone, endtouch for the start zone runs after you've teleported
+            // To-do: If you run this while you're in the start zone, endtouch for the start zone runs after you've teleported
             //        causing the timer to start. This needs to be fixed.
         }
 
