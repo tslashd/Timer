@@ -14,7 +14,7 @@ public partial class SurfTimer
         CBaseTrigger trigger = handler.GetParam<CBaseTrigger>(0);
         CBaseEntity entity = handler.GetParam<CBaseEntity>(1);
         CCSPlayerController client = new CCSPlayerController(new CCSPlayerPawn(entity.Handle).Controller.Value!.Handle);
-        if (!client.IsValid || !client.PawnIsAlive)
+        if (!client.IsValid || !client.PawnIsAlive || !playerList.ContainsKey((int)client.UserId!)) // !playerList.ContainsKey((int)client.UserId!) make sure to not check for user_id that doesnt exists
         {
             return HookResult.Continue;
         }
@@ -97,6 +97,10 @@ public partial class SurfTimer
 
                         // Replay - Add end buffer for replay
                         AddTimer(1.5f, () => player.ReplayRecorder.SaveReplayData(player, DB));
+                        AddTimer(2f, () => {
+                            CurrentMap.ReplayBot.LoadReplayData(DB!, CurrentMap.ID, CurrentMap.WR[0].ID);
+                            CurrentMap.ReplayBot.ResetReplay();
+                        });
                     }
 
                     #if DEBUG

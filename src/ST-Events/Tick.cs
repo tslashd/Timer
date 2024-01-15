@@ -10,9 +10,9 @@ public partial class SurfTimer
         foreach (var player in playerList.Values)
         {
             player.Timer.Tick();
-            player.HUD.Display();
             player.ReplayRecorder.Tick(player);
+            player.HUD.Display();
         }
-        CurrentMap.ReplayBot.Tick();
+        CurrentMap?.ReplayBot.Tick(); // When CurrentMap null the ? operator will terminate safely the operation
     }
 }

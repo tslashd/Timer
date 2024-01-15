@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Modules.Utils;
 using MySqlConnector;
 
 namespace SurfTimer;
@@ -9,6 +10,7 @@ internal class ReplayPlayer
 {
     public bool IsPlaying { get; set; } = false;
     public bool IsPaused { get; set; } = false;
+    public bool IsOnRepeat { get; set; } = true; // Currently should always repeat
 
     // Tracking
     public List<ReplayFrame> Frames { get; set; } = new List<ReplayFrame>();
@@ -39,7 +41,11 @@ internal class ReplayPlayer
 
     public void Start() 
     {
+        if (this.Controller == null)
+            return;
+
         this.IsPlaying = true;
+        this.Controller.Pawn.Value!.MoveType = MoveType_t.MOVETYPE_NOCLIP;
     }
 
     public void Stop() 
@@ -58,21 +64,36 @@ internal class ReplayPlayer
         if (!this.IsPlaying || this.Controller == null)
             return;
 
-        if(this.CurrentFrameTick >= this.Frames.Count) 
-        {
-            this.Stop();
-            this.ResetReplay();
-        }
-
         ReplayFrame current_frame = this.Frames[this.CurrentFrameTick];
-        this.Controller.PlayerPawn.Value!.Teleport(current_frame.Pos, current_frame.Ang, current_frame.Vel);
+        var current_pos = this.Controller.PlayerPawn.Value!.AbsOrigin!;
+
+        bool is_on_ground = (current_frame.Flags & (uint)PlayerFlags.FL_ONGROUND) != 0;
+        bool is_ducking = (current_frame.Flags & (uint)PlayerFlags.FL_DUCKING) != 0;
+
+        Vector velocity = (current_frame.Pos - current_pos) * 64;
+
+        if (is_on_ground)
+            this.Controller.PlayerPawn.Value.MoveType = MoveType_t.MOVETYPE_WALK;
+        else
+            this.Controller.PlayerPawn.Value.MoveType = MoveType_t.MOVETYPE_NOCLIP;
+
+        if ((current_pos - current_frame.Pos).Length() > 200)
+                this.Controller.PlayerPawn.Value.Teleport(current_frame.Pos, current_frame.Ang, new Vector(nint.Zero));
+            else
+                this.Controller.PlayerPawn.Value.Teleport(new Vector(nint.Zero), current_frame.Ang, velocity);
+                
 
         if (!this.IsPaused)
             this.CurrentFrameTick = Math.Max(0, this.CurrentFrameTick + this.FrameTickIncrement);
+
+        if(this.CurrentFrameTick >= this.Frames.Count) 
+            this.ResetReplay();
     }
 
     public void LoadReplayData(TimerDatabase DB, int map_id, int maptime_id = 0) 
     {
+        if (this.Controller == null)
+            return;
         // TODO: make query for wr too
         Task<MySqlDataReader> dbTask = DB.Query($"SELECT `replay_frames` FROM MapTimeReplay " +
                                                 $"WHERE `map_id`={map_id} AND `maptime_id`={maptime_id} ");

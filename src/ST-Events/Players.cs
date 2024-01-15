@@ -4,13 +4,36 @@ using CounterStrikeSharp.API.Core.Attributes.Registration;
 using CounterStrikeSharp.API.Modules.Utils;
 using MySqlConnector;
 using MaxMind.GeoIP2;
+using System.Linq.Expressions;
 
 namespace SurfTimer;
 
 public partial class SurfTimer
 {
-    [GameEventHandler] // Player Connect Event
-    public HookResult OnPlayerConnect(EventPlayerConnectFull @event, GameEventInfo info)
+    [GameEventHandler(HookMode.Post)]
+    public HookResult OnPlayerSpawn(EventPlayerSpawn @event, GameEventInfo info)
+    {
+        var controller = @event.Userid;
+        if(!controller.IsValid)
+            return HookResult.Continue;
+
+        if (controller.IsBot && CurrentMap.ReplayBot.Controller == null)
+        {
+            CurrentMap.ReplayBot.Controller = controller;
+            CurrentMap.ReplayBot.LoadReplayData(DB!, CurrentMap.ID, CurrentMap.WR[0].ID);
+            CurrentMap.ReplayBot.Start();
+            // CurrentMap.ReplayBot.Controller.PlayerName = $"[REPLAY] {CurrentMap.Name}";
+
+            AddTimer(2f, () => {
+                CurrentMap.ReplayBot.Controller.RemoveWeapons();
+            });
+
+        }
+        return HookResult.Continue;
+    }
+
+    [GameEventHandler]
+    public HookResult OnPlayerConnectFull(EventPlayerConnectFull @event, GameEventInfo info)
     {
         var player = @event.Userid;
         #if DEBUG
@@ -18,16 +41,8 @@ public partial class SurfTimer
         Console.WriteLine($"CS2 Surf DEBUG >> OnPlayerConnect -> {player.PlayerName} / {player.UserId} / Bot Diff: {player.PawnBotDifficulty}");
         #endif
 
-        if (player.PawnBotDifficulty != -1 || !player.IsValid) // IsBot might be broken so we can check for PawnBotDifficulty which is `-1` for real players
+        if (player.IsBot || !player.IsValid) // IsBot might be broken so we can check for PawnBotDifficulty which is `-1` for real players
         {
-            System.Console.WriteLine($"BotController: {CurrentMap.ReplayBot.Controller}");
-            if (player.IsBot && CurrentMap.ReplayBot.Controller == null) {
-                CurrentMap.ReplayBot.Controller = player;
-                #if DEBUG
-                Console.WriteLine("CS2 Surf DEBUG >> OnPlayerConnect -> Successfully connected Bot to ReplayPlayer.Controller");
-                #endif
-            }
-
             return HookResult.Continue;
         }
         else
@@ -136,6 +151,9 @@ public partial class SurfTimer
     public HookResult OnPlayerDisconnect(EventPlayerDisconnect @event, GameEventInfo info)
     {
         var player = @event.Userid;
+
+        if (player.Equals(CurrentMap.ReplayBot.Controller))
+            CurrentMap.ReplayBot.Reset();
 
         if (player.IsBot || !player.IsValid)
         {

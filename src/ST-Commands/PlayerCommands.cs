@@ -117,11 +117,12 @@ public partial class SurfTimer
         CurrentMap.ReplayBot.Pause();
     }
 
-    [ConsoleCommand("css_loadreplay", "Test")]
-    public void LoadReplay(CCSPlayerController? player, CommandInfo command) {
-        if(CurrentMap.ReplayBot.Controller == null)
+    [ConsoleCommand("css_reversereplay", "Test")]
+    [ConsoleCommand("css_rr", "Test")]
+    public void ReverseReplay(CCSPlayerController? player, CommandInfo command) {
+        if(CurrentMap.ReplayBot.Controller == null || !CurrentMap.ReplayBot.IsPlaying)
             return;
 
-        CurrentMap.ReplayBot.LoadReplayData(DB!, CurrentMap.ID, CurrentMap.WR[0].ID);
+        CurrentMap.ReplayBot.FrameTickIncrement *= -1;
     }
 }

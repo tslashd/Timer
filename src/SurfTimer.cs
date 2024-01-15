@@ -32,6 +32,7 @@ using CounterStrikeSharp.API.Core.Attributes;
 using CounterStrikeSharp.API.Core.Attributes.Registration;
 using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Utils;
+using CounterStrikeSharp.API.Modules.Timers;
 
 namespace SurfTimer;
 
@@ -61,6 +62,14 @@ public partial class SurfTimer : BasePlugin
         {
             AddTimer(1.0f, () => CurrentMap = new Map(mapName, DB!)); // Was 3 seconds, now 1 second
         }
+
+        AddTimer(10.0f, () => {
+            if (playerList.Count > 0 && CurrentMap?.ReplayBot.Controller == null) // Will be changed to allow more than one bot later
+            {
+                System.Console.WriteLine("DEBUG >> Adding bot");
+                Server.ExecuteCommand("bot_add_ct");
+            }
+        }, TimerFlags.REPEAT);
     }
 
     public void OnMapEnd()

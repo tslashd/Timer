@@ -1,4 +1,5 @@
 using System.Text.Json;
+using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Utils;
 
 namespace SurfTimer;
@@ -29,7 +30,7 @@ internal class ReplayRecorder
         if (!this.IsRecording || player == null)
             return;
 
-        // Disabeling Recording if times disabled
+        // Disabeling Recording if timer disabled
         if (!player.Timer.IsEnabled) 
         {
             this.Stop();
@@ -37,18 +38,16 @@ internal class ReplayRecorder
             return;
         }
 
-        var player_pos = player.Controller.PlayerPawn.Value!.AbsOrigin!;
-        var player_angle = player.Controller.PlayerPawn.Value!.EyeAngles!;
-        var player_velocity = player.Controller.PlayerPawn.Value!.AbsVelocity!;
-        var player_button = player.Controller.PlayerPawn.Value!.MovementServices!.Buttons.ButtonStates[0];
-        var player_flags = player.Controller.PlayerPawn.Value!.Flags;
-        var player_move_type = player.Controller.PlayerPawn.Value!.MoveType;
+        var player_pos = player.Controller.Pawn.Value.AbsOrigin;
+        var player_angle = player.Controller.PlayerPawn.Value.EyeAngles;
+        var player_button = player.Controller.Pawn.Value.MovementServices.Buttons.ButtonStates[0];
+        var player_flags = player.Controller.Pawn.Value.Flags;
+        var player_move_type = player.Controller.Pawn.Value.MoveType;
 
         var frame = new ReplayFrame 
         {
             Pos = new Vector(player_pos.X, player_pos.Y, player_pos.Z),
             Ang = new QAngle(player_angle.X, player_angle.Y, player_angle.Z),
-            Vel = new Vector(player_velocity.X, player_velocity.Y, player_velocity.Z),
             Button = player_button,
             Flags = player_flags,
             MoveType = player_move_type,
