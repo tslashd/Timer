@@ -53,6 +53,17 @@ public partial class SurfTimer : BasePlugin
     public string PluginPath = Server.GameDirectory + "/csgo/addons/counterstrikesharp/plugins/SurfTimer/";
     internal Map CurrentMap = null!;
 
+    // Retrieves the count of the *ALIVE* players
+    private int CountPlayerAlive()
+    {
+        int counter = 0;
+        foreach (var player in playerList.Values)
+            if (player.Controller.PawnIsAlive)
+                counter++;
+        
+        return counter;
+    }
+
     /* ========== MAP START HOOKS ========== */
     public void OnMapStart(string mapName)
     {
@@ -62,14 +73,6 @@ public partial class SurfTimer : BasePlugin
         {
             AddTimer(1.0f, () => CurrentMap = new Map(mapName, DB!)); // Was 3 seconds, now 1 second
         }
-
-        AddTimer(10.0f, () => {
-            if (playerList.Count > 0 && CurrentMap?.ReplayBot.Controller == null) // Will be changed to allow more than one bot later
-            {
-                System.Console.WriteLine("DEBUG >> Adding bot");
-                Server.ExecuteCommand("bot_add_ct");
-            }
-        }, TimerFlags.REPEAT);
     }
 
     public void OnMapEnd()
@@ -130,5 +133,12 @@ public partial class SurfTimer : BasePlugin
         VirtualFunctions.CBaseTrigger_StartTouchFunc.Hook(OnTriggerStartTouch, HookMode.Post);
         // EndTouch Hook
         VirtualFunctions.CBaseTrigger_EndTouchFunc.Hook(OnTriggerEndTouch, HookMode.Post);
+
+        AddTimer(5.0f, () => {
+            if (CurrentMap != null && CountPlayerAlive() > 0 && CurrentMap?.ReplayBot.Controller == null) // Will be changed to allow more than one bot later
+            {
+                Server.ExecuteCommand("bot_add_t");
+            }
+        }, TimerFlags.REPEAT);
     }
 }

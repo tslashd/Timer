@@ -152,7 +152,7 @@ public partial class SurfTimer
     {
         var player = @event.Userid;
 
-        if (player.Equals(CurrentMap.ReplayBot.Controller))
+        if (CurrentMap.ReplayBot.Controller != null && player.Equals(CurrentMap.ReplayBot.Controller))
             CurrentMap.ReplayBot.Reset();
 
         if (player.IsBot || !player.IsValid)
