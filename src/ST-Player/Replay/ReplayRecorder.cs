@@ -38,9 +38,9 @@ internal class ReplayRecorder
             return;
         }
 
-        var player_pos = player.Controller.Pawn.Value.AbsOrigin;
-        var player_angle = player.Controller.PlayerPawn.Value.EyeAngles;
-        var player_button = player.Controller.Pawn.Value.MovementServices.Buttons.ButtonStates[0];
+        var player_pos = player.Controller.Pawn.Value!.AbsOrigin!;
+        var player_angle = player.Controller.PlayerPawn.Value!.EyeAngles;
+        var player_button = player.Controller.Pawn.Value.MovementServices!.Buttons.ButtonStates[0];
         var player_flags = player.Controller.Pawn.Value.Flags;
         var player_move_type = player.Controller.Pawn.Value.MoveType;
 

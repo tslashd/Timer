@@ -33,6 +33,7 @@ using CounterStrikeSharp.API.Core.Attributes.Registration;
 using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Utils;
 using CounterStrikeSharp.API.Modules.Timers;
+using CounterStrikeSharp.API.Modules.Cvars;
 
 namespace SurfTimer;
 
@@ -133,12 +134,5 @@ public partial class SurfTimer : BasePlugin
         VirtualFunctions.CBaseTrigger_StartTouchFunc.Hook(OnTriggerStartTouch, HookMode.Post);
         // EndTouch Hook
         VirtualFunctions.CBaseTrigger_EndTouchFunc.Hook(OnTriggerEndTouch, HookMode.Post);
-
-        AddTimer(5.0f, () => {
-            if (CurrentMap != null && CountPlayerAlive() > 0 && CurrentMap?.ReplayBot.Controller == null) // Will be changed to allow more than one bot later
-            {
-                Server.ExecuteCommand("bot_add_t");
-            }
-        }, TimerFlags.REPEAT);
     }
 }

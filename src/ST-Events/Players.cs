@@ -4,7 +4,6 @@ using CounterStrikeSharp.API.Core.Attributes.Registration;
 using CounterStrikeSharp.API.Modules.Utils;
 using MySqlConnector;
 using MaxMind.GeoIP2;
-using System.Linq.Expressions;
 
 namespace SurfTimer;
 
@@ -20,15 +19,16 @@ public partial class SurfTimer
         if (controller.IsBot && CurrentMap.ReplayBot.Controller == null)
         {
             CurrentMap.ReplayBot.Controller = controller;
-            CurrentMap.ReplayBot.LoadReplayData(DB!, CurrentMap.ID, CurrentMap.WR[0].ID);
-            CurrentMap.ReplayBot.Start();
             // CurrentMap.ReplayBot.Controller.PlayerName = $"[REPLAY] {CurrentMap.Name}";
 
+            Server.PrintToChatAll($"{ChatColors.Lime} Loading replay data...{ChatColors.Default}"); // WHY COLORS NOT WORKING AHHHHH!!!!!
             AddTimer(2f, () => {
                 CurrentMap.ReplayBot.Controller.RemoveWeapons();
+                CurrentMap.ReplayBot.LoadReplayData(DB!, CurrentMap.ID, CurrentMap.WR[0].ID);
+                CurrentMap.ReplayBot.Start();
             });
-
         }
+
         return HookResult.Continue;
     }
 
@@ -152,8 +152,9 @@ public partial class SurfTimer
     {
         var player = @event.Userid;
 
-        if (CurrentMap.ReplayBot.Controller != null && player.Equals(CurrentMap.ReplayBot.Controller))
-            CurrentMap.ReplayBot.Reset();
+        if(CurrentMap.ReplayBot.Controller != null)
+            if (player.Equals(CurrentMap.ReplayBot.Controller))
+                CurrentMap.ReplayBot.Reset();
 
         if (player.IsBot || !player.IsValid)
         {
