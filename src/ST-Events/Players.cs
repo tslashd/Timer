@@ -24,7 +24,15 @@ public partial class SurfTimer
             Server.PrintToChatAll($"{ChatColors.Lime} Loading replay data...{ChatColors.Default}"); // WHY COLORS NOT WORKING AHHHHH!!!!!
             AddTimer(2f, () => {
                 CurrentMap.ReplayBot.Controller.RemoveWeapons();
+                
                 CurrentMap.ReplayBot.LoadReplayData(DB!, CurrentMap.ID, CurrentMap.WR[0].ID);
+                SchemaString<CBasePlayerController> bot_name = new SchemaString<CBasePlayerController>(CurrentMap.ReplayBot.Controller, "m_iszPlayerName");
+                // Revisit, FORMAT CORECTLLY
+                int seconds = CurrentMap.WR[0].Ticks / 64;
+                int millis = (int)(CurrentMap.WR[0].Ticks % 64 * (1000.0 / 64.0));
+                bot_name.Set($"[WR] {seconds}.{millis}");
+                Utilities.SetStateChanged(CurrentMap.ReplayBot.Controller, "CBasePlayerController", "m_iszPlayerName");
+
                 CurrentMap.ReplayBot.Start();
             });
         }
