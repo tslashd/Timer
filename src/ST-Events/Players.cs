@@ -21,16 +21,14 @@ public partial class SurfTimer
             CurrentMap.ReplayBot.Controller = controller;
             // CurrentMap.ReplayBot.Controller.PlayerName = $"[REPLAY] {CurrentMap.Name}";
 
-            Server.PrintToChatAll($"{ChatColors.Lime} Loading replay data...{ChatColors.Default}"); // WHY COLORS NOT WORKING AHHHHH!!!!!
+            Server.PrintToChatAll($"{ChatColors.Lime} Loading replay data..."); // WHY COLORS NOT WORKING AHHHHH!!!!!
             AddTimer(2f, () => {
                 CurrentMap.ReplayBot.Controller.RemoveWeapons();
                 
                 CurrentMap.ReplayBot.LoadReplayData(DB!, CurrentMap.ID, CurrentMap.WR[0].ID);
                 SchemaString<CBasePlayerController> bot_name = new SchemaString<CBasePlayerController>(CurrentMap.ReplayBot.Controller, "m_iszPlayerName");
                 // Revisit, FORMAT CORECTLLY
-                int seconds = CurrentMap.WR[0].Ticks / 64;
-                int millis = (int)(CurrentMap.WR[0].Ticks % 64 * (1000.0 / 64.0));
-                bot_name.Set($"[WR] {seconds}.{millis}");
+                bot_name.Set($"[WR] {PlayerHUD.FormatTime(CurrentMap.WR[0].Ticks)}");
                 Utilities.SetStateChanged(CurrentMap.ReplayBot.Controller, "CBasePlayerController", "m_iszPlayerName");
 
                 CurrentMap.ReplayBot.Start();
@@ -160,9 +158,8 @@ public partial class SurfTimer
     {
         var player = @event.Userid;
 
-        if(CurrentMap.ReplayBot.Controller != null)
-            if (player.Equals(CurrentMap.ReplayBot.Controller))
-                CurrentMap.ReplayBot.Reset();
+        if (CurrentMap.ReplayBot.Controller != null&& CurrentMap.ReplayBot.Controller.Equals(player))
+            CurrentMap.ReplayBot.Reset();
 
         if (player.IsBot || !player.IsValid)
         {

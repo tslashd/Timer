@@ -13,6 +13,8 @@ public partial class SurfTimer
             player.ReplayRecorder.Tick(player);
             player.HUD.Display();
         }
+
+        // Replay BOT Ticks
         CurrentMap?.ReplayBot.Tick(); // When CurrentMap null the ? operator will terminate safely the operation
     }
 }

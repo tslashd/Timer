@@ -54,17 +54,6 @@ public partial class SurfTimer : BasePlugin
     public string PluginPath = Server.GameDirectory + "/csgo/addons/counterstrikesharp/plugins/SurfTimer/";
     internal Map CurrentMap = null!;
 
-    // Retrieves the count of the *ALIVE* players
-    private int CountPlayerAlive()
-    {
-        int counter = 0;
-        foreach (var player in playerList.Values)
-            if (player.Controller.PawnIsAlive)
-                counter++;
-        
-        return counter;
-    }
-
     /* ========== MAP START HOOKS ========== */
     public void OnMapStart(string mapName)
     {

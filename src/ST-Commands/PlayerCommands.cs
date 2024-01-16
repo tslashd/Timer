@@ -100,29 +100,37 @@ public partial class SurfTimer
     // }
 
     // Test command
-    [ConsoleCommand("css_replay", "Test")]
-    public void PlayReplay(CCSPlayerController? player, CommandInfo command) {
-        if(CurrentMap.ReplayBot.Controller == null)
+    [ConsoleCommand("css_spec", "Moves a player automaticlly into spectator mode")]
+    public void MovePlayerToSpectator(CCSPlayerController? player, CommandInfo command) {
+        if(player == null || player.Team == CsTeam.Spectator)
             return;
 
-        CurrentMap.ReplayBot.Start();
+        player.ChangeTeam(CsTeam.Spectator);
     }
 
-    [ConsoleCommand("css_replaypause", "Test")]
-    [ConsoleCommand("css_rp", "Test")]
+    [ConsoleCommand("css_replaybotpause", "Pause the replay bot playback")]
+    [ConsoleCommand("css_rbpause", "Pause the replay bot playback")]
     public void PauseReplay(CCSPlayerController? player, CommandInfo command) {
-        if(CurrentMap.ReplayBot.Controller == null || !CurrentMap.ReplayBot.IsPlaying)
+        if(player == null
+            || player.Team != CsTeam.Spectator
+            || CurrentMap.ReplayBot.Controller == null
+            || !CurrentMap.ReplayBot.IsPlaying
+            || CurrentMap.ReplayBot.Controller.Pawn.SerialNum != player.ObserverPawn.Value!.ObserverServices!.ObserverTarget.SerialNum)
             return;
-
+        
         CurrentMap.ReplayBot.Pause();
     }
 
-    [ConsoleCommand("css_reversereplay", "Test")]
-    [ConsoleCommand("css_rr", "Test")]
+    [ConsoleCommand("css_replaybotflip", "Flips the replay bot between Forward/Backward playback")]
+    [ConsoleCommand("css_rbflip", "Flips the replay bot between Forward/Backward playback")]
     public void ReverseReplay(CCSPlayerController? player, CommandInfo command) {
-        if(CurrentMap.ReplayBot.Controller == null || !CurrentMap.ReplayBot.IsPlaying)
+        if(player == null
+            || player.Team != CsTeam.Spectator
+            || CurrentMap.ReplayBot.Controller == null
+            || !CurrentMap.ReplayBot.IsPlaying
+            || CurrentMap.ReplayBot.Controller.Pawn.SerialNum != player.ObserverPawn.Value!.ObserverServices!.ObserverTarget.SerialNum)
             return;
-
+        
         CurrentMap.ReplayBot.FrameTickIncrement *= -1;
     }
 }
