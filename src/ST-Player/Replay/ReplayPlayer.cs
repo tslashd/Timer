@@ -46,7 +46,6 @@ internal class ReplayPlayer
             return;
 
         this.IsPlaying = true;
-        this.Controller.Pawn.Value!.MoveType = MoveType_t.MOVETYPE_NOCLIP;
     }
 
     public void Stop() 
@@ -111,11 +110,11 @@ internal class ReplayPlayer
                 string json = Compressor.Decompress(Encoding.UTF8.GetString((byte[])mapTimeReplay[0]));
                 this.Frames = JsonSerializer.Deserialize<List<ReplayFrame>>(json, options)!;
             }
+            FormatBotName(current_map);
         }
         mapTimeReplay.Close();
         dbTask.Dispose();
 
-        FormatBotName(current_map);
     }
 
     private void FormatBotName(Map current_map)
