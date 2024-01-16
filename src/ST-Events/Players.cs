@@ -25,11 +25,7 @@ public partial class SurfTimer
             AddTimer(2f, () => {
                 CurrentMap.ReplayBot.Controller.RemoveWeapons();
                 
-                CurrentMap.ReplayBot.LoadReplayData(DB!, CurrentMap.ID, CurrentMap.WR[0].ID);
-                SchemaString<CBasePlayerController> bot_name = new SchemaString<CBasePlayerController>(CurrentMap.ReplayBot.Controller, "m_iszPlayerName");
-                // Revisit, FORMAT CORECTLLY
-                bot_name.Set($"[WR] {PlayerHUD.FormatTime(CurrentMap.WR[0].Ticks)}");
-                Utilities.SetStateChanged(CurrentMap.ReplayBot.Controller, "CBasePlayerController", "m_iszPlayerName");
+                CurrentMap.ReplayBot.LoadReplayData(DB!, CurrentMap);
 
                 CurrentMap.ReplayBot.Start();
             });
