@@ -156,7 +156,7 @@ public partial class SurfTimer
         });
         p.CurrentSavedLocation = p.SavedLocations.Count-1;
 
-        p.Controller.PrintToChat($"{PluginPrefix} {ChatColors.Green}Saved location! {ChatColors.Default} use !tele #{p.SavedLocations.Count-1} to teleport to this location");
+        p.Controller.PrintToChat($"{PluginPrefix} {ChatColors.Green}Saved location! {ChatColors.Default} use !tele {p.SavedLocations.Count-1} to teleport to this location");
     }
 
     [ConsoleCommand("css_tele", "Teleport player to current saved location")]
@@ -182,6 +182,8 @@ public partial class SurfTimer
             p.Timer.IsPracticeMode = true;
         }
 
+        if(command.ArgCount > 1)
+            p.CurrentSavedLocation = int.Parse(command.ArgByIndex(1));
         SavelocFrame location = p.SavedLocations[p.CurrentSavedLocation];
         Server.NextFrame(() => {
             p.Controller.PlayerPawn.Value!.Teleport(location.Pos, location.Ang, location.Vel);
