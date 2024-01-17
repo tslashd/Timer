@@ -51,6 +51,10 @@ public partial class SurfTimer
                     // MAP START ZONE
                     player.Timer.Start();
 
+                    // string PracticeString = "";
+                    // if (player.Timer.IsPracticeMode)
+                    //     PracticeString = $"({ChatColors.Grey}Practice{ChatColors.Default}) ";
+
                     /* Revisit
                     // Wonky Prespeed check
                     // To-do: make the teleportation a bit more elegant (method in a class or something)

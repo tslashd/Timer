@@ -159,7 +159,7 @@ public partial class SurfTimer
         p.Controller.PrintToChat($"{PluginPrefix} {ChatColors.Green}Saved location! {ChatColors.Default} use !tele #{p.SavedLocations.Count-1} to teleport to this location");
     }
 
-    [ConsoleCommand("css_tele", "Save current player location to be practiced")]
+    [ConsoleCommand("css_tele", "Teleport player to current saved location")]
     public void TeleportPlayerLocation(CCSPlayerController? player, CommandInfo command)
     {
         if(player == null || !player.PawnIsAlive || !playerList.ContainsKey(player.UserId ?? 0))
@@ -188,7 +188,7 @@ public partial class SurfTimer
         p.Controller.PrintToChat($"{PluginPrefix} Teleported #{p.CurrentSavedLocation}");
     }
 
-    [ConsoleCommand("css_teleprev", "Save current player location to be practiced")]
+    [ConsoleCommand("css_teleprev", "Teleport player to previous saved location")]
     public void TeleportPlayerLocationPrev(CCSPlayerController? player, CommandInfo command)
     {
         if(player == null || !player.PawnIsAlive || !playerList.ContainsKey(player.UserId ?? 0))
@@ -216,7 +216,7 @@ public partial class SurfTimer
         p.Controller.PrintToChat($"{PluginPrefix} Teleported #{p.CurrentSavedLocation}");
     }
 
-    [ConsoleCommand("css_telenext", "Save current player location to be practiced")]
+    [ConsoleCommand("css_telenext", "Teleport player to next saved location")]
     public void TeleportPlayerLocationNext(CCSPlayerController? player, CommandInfo command)
     {
         if(player == null || !player.PawnIsAlive || !playerList.ContainsKey(player.UserId ?? 0))

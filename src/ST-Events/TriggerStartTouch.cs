@@ -57,18 +57,22 @@ public partial class SurfTimer
                         player.Stats.ThisRun.EndVelY = velocity_y; // End pre speed for the run
                         player.Stats.ThisRun.EndVelZ = velocity_z; // End pre speed for the run
 
+                        string PracticeString = "";
+                        if (player.Timer.IsPracticeMode)
+                            PracticeString = $"({ChatColors.Grey}Practice{ChatColors.Default}) ";
+
                         // To-do: make Style (currently 0) be dynamic
                         if (player.Stats.PB[style].Ticks <= 0) // Player first ever PersonalBest for the map
                         {
-                            Server.PrintToChatAll($"{PluginPrefix} {player.Controller.PlayerName} finished the map in {ChatColors.Gold}{PlayerHUD.FormatTime(player.Timer.Ticks)}{ChatColors.Default} ({player.Timer.Ticks})!");
+                            Server.PrintToChatAll($"{PluginPrefix} {PracticeString}{player.Controller.PlayerName} finished the map in {ChatColors.Gold}{PlayerHUD.FormatTime(player.Timer.Ticks)}{ChatColors.Default} ({player.Timer.Ticks})!");
                         }
                         else if (player.Timer.Ticks < player.Stats.PB[style].Ticks) // Player beating their existing PersonalBest for the map
                         {
-                            Server.PrintToChatAll($"{PluginPrefix} {ChatColors.Lime}{player.Profile.Name}{ChatColors.Default} beat their PB in {ChatColors.Gold}{PlayerHUD.FormatTime(player.Timer.Ticks)}{ChatColors.Default} (Old: {ChatColors.BlueGrey}{PlayerHUD.FormatTime(player.Stats.PB[style].Ticks)}{ChatColors.Default})!");
+                            Server.PrintToChatAll($"{PluginPrefix} {PracticeString}{ChatColors.Lime}{player.Profile.Name}{ChatColors.Default} beat their PB in {ChatColors.Gold}{PlayerHUD.FormatTime(player.Timer.Ticks)}{ChatColors.Default} (Old: {ChatColors.BlueGrey}{PlayerHUD.FormatTime(player.Stats.PB[style].Ticks)}{ChatColors.Default})!");
                         }
                         else // Player did not beat their existing PersonalBest for the map
                         {
-                            player.Controller.PrintToChat($"{PluginPrefix} You finished the map in {ChatColors.Yellow}{PlayerHUD.FormatTime(player.Timer.Ticks)}{ChatColors.Default}!");
+                            player.Controller.PrintToChat($"{PluginPrefix} {PracticeString}You finished the map in {ChatColors.Yellow}{PlayerHUD.FormatTime(player.Timer.Ticks)}{ChatColors.Default}!");
                             return HookResult.Continue; // Exit here so we don't write to DB
                         }
 
