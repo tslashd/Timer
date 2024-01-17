@@ -84,7 +84,6 @@ public partial class SurfTimer
             player.PrintToChat($"{PluginPrefix} {ChatColors.Red}Invalid stage provided. Usage: {ChatColors.Green}!s <stage>");
     }
 
-    // Test command
     [ConsoleCommand("css_spec", "Moves a player automaticlly into spectator mode")]
     public void MovePlayerToSpectator(CCSPlayerController? player, CommandInfo command)
     {
@@ -94,6 +93,11 @@ public partial class SurfTimer
         player.ChangeTeam(CsTeam.Spectator);
     }
 
+    /*
+    #########################
+        Reaplay Commands
+    #########################
+    */
     [ConsoleCommand("css_replaybotpause", "Pause the replay bot playback")]
     [ConsoleCommand("css_rbpause", "Pause the replay bot playback")]
     public void PauseReplay(CCSPlayerController? player, CommandInfo command)
@@ -120,5 +124,123 @@ public partial class SurfTimer
             return;
 
         CurrentMap.ReplayBot.FrameTickIncrement *= -1;
+    }
+
+        /*
+    ########################
+        Saveloc Commands
+    ########################
+    */
+    [ConsoleCommand("css_saveloc", "Save current player location to be practiced")]
+    public void SavePlayerLocation(CCSPlayerController? player, CommandInfo command)
+    {
+        if(player == null || !player.PawnIsAlive || !playerList.ContainsKey(player.UserId ?? 0))
+            return;
+
+        Player p = playerList[player.UserId ?? 0];
+        if (!p.Timer.IsRunning)
+        {
+            p.Controller.PrintToChat($"{PluginPrefix} {ChatColors.Red}Cannot save location while not in run");
+            return;
+        }
+
+        var player_pos = p.Controller.Pawn.Value!.AbsOrigin!;
+        var player_angle = p.Controller.PlayerPawn.Value!.EyeAngles;
+        var player_velocity = p.Controller.PlayerPawn.Value!.AbsVelocity;
+
+        p.SavedLocations.Add(new SavelocFrame {
+            Pos = new Vector(player_pos.X, player_pos.Y, player_pos.Z),
+            Ang = new QAngle(player_angle.X, player_angle.Y, player_angle.Z),
+            Vel = new Vector(player_velocity.X, player_velocity.Y, player_velocity.Z),
+            Tick = p.Timer.Ticks
+        });
+        p.CurrentSavedLocation = p.SavedLocations.Count-1;
+
+        p.Controller.PrintToChat($"{PluginPrefix} {ChatColors.Green}Saved location! {ChatColors.Default} use !tele #{p.SavedLocations.Count-1} to teleport to this location");
+    }
+
+    [ConsoleCommand("css_tele", "Save current player location to be practiced")]
+    public void TeleportPlayerLocation(CCSPlayerController? player, CommandInfo command)
+    {
+        if(player == null || !player.PawnIsAlive || !playerList.ContainsKey(player.UserId ?? 0))
+            return;
+
+        Player p = playerList[player.UserId ?? 0];
+
+        if(p.SavedLocations.Count == 0)
+        {
+            p.Controller.PrintToChat($"{PluginPrefix} {ChatColors.Red}No saved locations");
+            return;
+        }
+
+        if (!p.Timer.IsPracticeMode)
+        {
+            p.Controller.PrintToChat($"{PluginPrefix} {ChatColors.Red}Timer now on practice");
+            p.Timer.IsPracticeMode = true;
+        }
+
+        SavelocFrame location = p.SavedLocations[p.CurrentSavedLocation];
+        Server.NextFrame(() => {
+            p.Controller.PlayerPawn.Value!.Teleport(location.Pos, location.Ang, location.Vel);
+            p.Timer.Ticks = location.Tick;
+        });
+
+        p.Controller.PrintToChat($"{PluginPrefix} Teleported #{p.CurrentSavedLocation}");
+    }
+
+    [ConsoleCommand("css_teleprev", "Save current player location to be practiced")]
+    public void TeleportPlayerLocationPrev(CCSPlayerController? player, CommandInfo command)
+    {
+        if(player == null || !player.PawnIsAlive || !playerList.ContainsKey(player.UserId ?? 0))
+            return;
+
+        Player p = playerList[player.UserId ?? 0];
+
+        if(p.SavedLocations.Count == 0)
+        {
+            p.Controller.PrintToChat($"{PluginPrefix} {ChatColors.Red}No saved locations");
+            return;
+        }
+
+        if(p.CurrentSavedLocation == 0)
+        {
+            p.Controller.PrintToChat($"{PluginPrefix} {ChatColors.Red}Already at first location");
+        }
+        else
+        {
+            p.CurrentSavedLocation--;
+        }
+
+        TeleportPlayerLocation(player, command);
+
+        p.Controller.PrintToChat($"{PluginPrefix} Teleported #{p.CurrentSavedLocation}");
+    }
+
+    [ConsoleCommand("css_telenext", "Save current player location to be practiced")]
+    public void TeleportPlayerLocationNext(CCSPlayerController? player, CommandInfo command)
+    {
+        if(player == null || !player.PawnIsAlive || !playerList.ContainsKey(player.UserId ?? 0))
+            return;
+
+        Player p = playerList[player.UserId ?? 0];
+
+        if(p.SavedLocations.Count == 0)
+        {
+            p.Controller.PrintToChat($"{PluginPrefix} {ChatColors.Red}No saved locations");
+            return;
+        }
+
+        if(p.CurrentSavedLocation == p.SavedLocations.Count-1)
+        {
+            p.Controller.PrintToChat($"{PluginPrefix} {ChatColors.Red}Already at last location");
+        }
+        else
+        {
+            p.CurrentSavedLocation++;
+        }
+
+        TeleportPlayerLocation(player, command);
+
+        p.Controller.PrintToChat($"{PluginPrefix} Teleported #{p.CurrentSavedLocation}");
     }
 }

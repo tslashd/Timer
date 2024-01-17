@@ -90,18 +90,20 @@ public partial class SurfTimer
                         #endif
 
                         // Add entry in DB for the run
-                        player.Stats.ThisRun.SaveMapTime(player, DB); // Save the MapTime PB data
-                        player.Stats.LoadMapTimesData(player, DB); // Load the MapTime PB data again (will refresh the MapTime ID for the Checkpoints query)
-                        player.Stats.ThisRun.SaveCurrentRunCheckpoints(player, DB); // Save this run's checkpoints
-                        player.Stats.LoadCheckpointsData(DB); // Reload checkpoints for the run - we should really have this in `SaveMapTime` as well but we don't re-load PB data inside there so we need to do it here
-                        CurrentMap.GetMapRecordAndTotals(DB); // Reload the Map record and totals for the HUD
+                        if(!player.Timer.IsPracticeMode) {
+                            player.Stats.ThisRun.SaveMapTime(player, DB); // Save the MapTime PB data
+                            player.Stats.LoadMapTimesData(player, DB); // Load the MapTime PB data again (will refresh the MapTime ID for the Checkpoints query)
+                            player.Stats.ThisRun.SaveCurrentRunCheckpoints(player, DB); // Save this run's checkpoints
+                            player.Stats.LoadCheckpointsData(DB); // Reload checkpoints for the run - we should really have this in `SaveMapTime` as well but we don't re-load PB data inside there so we need to do it here
+                            CurrentMap.GetMapRecordAndTotals(DB); // Reload the Map record and totals for the HUD
 
-                        // Replay - Add end buffer for replay
-                        AddTimer(1.5f, () => player.ReplayRecorder.SaveReplayData(player, DB));
-                        AddTimer(2f, () => {
-                            CurrentMap.ReplayBot.LoadReplayData(DB!, CurrentMap);
-                            CurrentMap.ReplayBot.ResetReplay();
-                        });
+                            // Replay - Add end buffer for replay
+                            AddTimer(1.5f, () => player.ReplayRecorder.SaveReplayData(player, DB));
+                            AddTimer(2f, () => {
+                                CurrentMap.ReplayBot.LoadReplayData(DB!, CurrentMap);
+                                CurrentMap.ReplayBot.ResetReplay();
+                            });
+                        }
                     }
 
                     #if DEBUG
