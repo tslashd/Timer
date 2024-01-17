@@ -173,6 +173,9 @@ public partial class SurfTimer
             return;
         }
 
+        if(!p.Timer.IsRunning)
+            p.Timer.Start();
+
         if (!p.Timer.IsPracticeMode)
         {
             p.Controller.PrintToChat($"{PluginPrefix} {ChatColors.Red}Timer now on practice");
