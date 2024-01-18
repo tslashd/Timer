@@ -14,7 +14,9 @@ public partial class SurfTimer
             player.HUD.Display();
         }
 
-        // Replay BOT Ticks
-        CurrentMap?.ReplayBot.Tick(); // When CurrentMap null the ? operator will terminate safely the operation
+        for(int i = 0; i < CurrentMap?.ReplayBots.Count; i++)
+        {
+            CurrentMap?.ReplayBots[i].Tick();
+        }
     }
 }

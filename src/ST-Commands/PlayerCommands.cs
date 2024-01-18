@@ -102,28 +102,32 @@ public partial class SurfTimer
     [ConsoleCommand("css_rbpause", "Pause the replay bot playback")]
     public void PauseReplay(CCSPlayerController? player, CommandInfo command)
     {
-        if (player == null
-            || player.Team != CsTeam.Spectator
-            || CurrentMap.ReplayBot.Controller == null
-            || !CurrentMap.ReplayBot.IsPlaying
-            || CurrentMap.ReplayBot.Controller.Pawn.SerialNum != player.ObserverPawn.Value!.ObserverServices!.ObserverTarget.SerialNum)
+        if(player == null || player.Team != CsTeam.Spectator)
             return;
 
-        CurrentMap.ReplayBot.Pause();
+        foreach(ReplayPlayer rb in CurrentMap.ReplayBots)
+        {
+            if(!rb.IsPlayable || !rb.IsPlaying || rb.Controller!.Pawn.SerialNum != player.ObserverPawn.Value!.ObserverServices!.ObserverTarget.SerialNum)
+                continue;
+            
+            rb.Pause();
+        }
     }
 
     [ConsoleCommand("css_replaybotflip", "Flips the replay bot between Forward/Backward playback")]
     [ConsoleCommand("css_rbflip", "Flips the replay bot between Forward/Backward playback")]
     public void ReverseReplay(CCSPlayerController? player, CommandInfo command)
     {
-        if (player == null
-            || player.Team != CsTeam.Spectator
-            || CurrentMap.ReplayBot.Controller == null
-            || !CurrentMap.ReplayBot.IsPlaying
-            || CurrentMap.ReplayBot.Controller.Pawn.SerialNum != player.ObserverPawn.Value!.ObserverServices!.ObserverTarget.SerialNum)
+        if(player == null || player.Team != CsTeam.Spectator)
             return;
 
-        CurrentMap.ReplayBot.FrameTickIncrement *= -1;
+        foreach(ReplayPlayer rb in CurrentMap.ReplayBots)
+        {
+            if(!rb.IsPlayable || !rb.IsPlaying || rb.Controller!.Pawn.SerialNum != player.ObserverPawn.Value!.ObserverServices!.ObserverTarget.SerialNum)
+                continue;
+            
+            rb.FrameTickIncrement *= -1;
+        }
     }
 
         /*

@@ -77,6 +77,11 @@ public partial class SurfTimer : BasePlugin
     {
         // Load cvars/other configs here
         // Execute server_settings.cfg
+
+        ConVarHelper.RemoveCheatFlagFromConVar("bot_stop");
+        ConVarHelper.RemoveCheatFlagFromConVar("bot_freeze");
+        ConVarHelper.RemoveCheatFlagFromConVar("bot_zombie");
+
         Server.ExecuteCommand("execifexists SurfTimer/server_settings.cfg");
         Console.WriteLine("[CS2 Surf] Executed configuration: server_settings.cfg");
         return HookResult.Continue;

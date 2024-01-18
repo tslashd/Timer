@@ -102,12 +102,14 @@ internal class PlayerHUD
         }
         else if (_player.Controller.Team == CsTeam.Spectator)
         {
-            if (_player.CurrMap.ReplayBot.Controller?.Pawn.SerialNum == _player.Controller.ObserverPawn.Value!.ObserverServices!.ObserverTarget.SerialNum)
+            for (int i = 0; i < _player.CurrMap.ReplayBots.Count; i++)
             {
-                // Replay HUD Modules
+                if (_player.CurrMap.ReplayBots[i].Controller?.Pawn.SerialNum != _player.Controller.ObserverPawn.Value!.ObserverServices!.ObserverTarget.SerialNum)
+                    continue;
+
                 string replayModule = $"{FormatHUDElementHTML("", "REPLAY", "red", "large")}";
                 string nameModule = FormatHUDElementHTML($"{_player.CurrMap.WR[_player.Timer.Style].Name}", $"{FormatTime(_player.CurrMap.WR[_player.Timer.Style].Ticks)}", "#ffd500");
-                string elapsed_ticks = FormatHUDElementHTML("Tick", $"{_player.CurrMap.ReplayBot.CurrentFrameTick}/{_player.CurrMap.ReplayBot.Frames.Count}", "#7882dd");
+                string elapsed_ticks = FormatHUDElementHTML("Tick", $"{_player.CurrMap.ReplayBots[i].CurrentFrameTick}/{_player.CurrMap.ReplayBots[i].Frames.Count}", "#7882dd");
                 string hud = $"{replayModule}<br>{elapsed_ticks}<br>{nameModule}";
 
                 _player.Controller.PrintToCenterHtml(hud);

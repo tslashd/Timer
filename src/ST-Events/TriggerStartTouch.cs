@@ -104,8 +104,8 @@ public partial class SurfTimer
                             // Replay - Add end buffer for replay
                             AddTimer(1.5f, () => player.ReplayRecorder.SaveReplayData(player, DB));
                             AddTimer(2f, () => {
-                                CurrentMap.ReplayBot.LoadReplayData(DB!, CurrentMap);
-                                CurrentMap.ReplayBot.ResetReplay();
+                                CurrentMap.ReplayBots[0].LoadReplayData(DB!, CurrentMap);
+                                CurrentMap.ReplayBots[0].ResetReplay();
                             });
                         }
                     }

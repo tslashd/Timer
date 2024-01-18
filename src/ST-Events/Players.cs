@@ -16,19 +16,26 @@ public partial class SurfTimer
         if(!controller.IsValid)
             return HookResult.Continue;
 
-        if (controller.IsBot && CurrentMap.ReplayBot.Controller == null)
+        if(controller.IsBot)
         {
-            CurrentMap.ReplayBot.Controller = controller;
-            // CurrentMap.ReplayBot.Controller.PlayerName = $"[REPLAY] {CurrentMap.Name}";
+            for (int i = 0; i < CurrentMap.ReplayBots.Count; i++)
+            {
+                if(!CurrentMap.ReplayBots[i].IsPlayable)
+                {
+                    // Currently only for Map
+                    if(i == 0) {
+                        CurrentMap.ReplayBots[0].SetController(controller);
+                        Server.PrintToChatAll($"{ChatColors.Lime} Loading replay data..."); // WHY COLORS NOT WORKING AHHHHH!!!!!
+                        AddTimer(2f, () => {
+                            CurrentMap.ReplayBots[0].Controller!.RemoveWeapons();
+                            
+                            CurrentMap.ReplayBots[0].LoadReplayData(DB!, CurrentMap);
 
-            Server.PrintToChatAll($"{ChatColors.Lime} Loading replay data..."); // WHY COLORS NOT WORKING AHHHHH!!!!!
-            AddTimer(2f, () => {
-                CurrentMap.ReplayBot.Controller.RemoveWeapons();
-                
-                CurrentMap.ReplayBot.LoadReplayData(DB!, CurrentMap);
-
-                CurrentMap.ReplayBot.Start();
-            });
+                            CurrentMap.ReplayBots[0].Start();
+                        });
+                    }
+                }
+            }
         }
 
         return HookResult.Continue;
@@ -157,8 +164,9 @@ public partial class SurfTimer
     {
         var player = @event.Userid;
 
-        if (CurrentMap.ReplayBot.Controller != null&& CurrentMap.ReplayBot.Controller.Equals(player))
-            CurrentMap.ReplayBot.Reset();
+        for (int i = 0; i < CurrentMap.ReplayBots.Count; i++)
+            if (CurrentMap.ReplayBots[i].IsPlayable && CurrentMap.ReplayBots[i].Controller!.Equals(player))
+                CurrentMap.ReplayBots[i].Reset();
 
         if (player.IsBot || !player.IsValid)
         {

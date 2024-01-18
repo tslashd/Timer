@@ -12,6 +12,7 @@ internal class ReplayPlayer
     public bool IsPlaying { get; set; } = false;
     public bool IsPaused { get; set; } = false;
     public bool IsOnRepeat { get; set; } = true; // Currently should always repeat
+    public bool IsPlayable { get; set; } = false;
 
     // Tracking
     public List<ReplayFrame> Frames { get; set; } = new List<ReplayFrame>();
@@ -32,12 +33,19 @@ internal class ReplayPlayer
     {
         this.IsPlaying = false;
         this.IsPaused = false;
+        this.IsPlayable = false;
 
         this.Frames.Clear();
 
         this.ResetReplay();
 
         this.Controller = null;
+    }
+
+    public void SetController(CCSPlayerController c)
+    {
+        this.Controller = c;
+        this.IsPlayable = true;
     }
 
     public void Start() 
@@ -61,11 +69,11 @@ internal class ReplayPlayer
 
     public void Tick() 
     {
-        if (!this.IsPlaying || this.Controller == null || this.Frames.Count == 0)
+        if (!this.IsPlaying || !this.IsPlayable || this.Frames.Count == 0)
             return;
 
         ReplayFrame current_frame = this.Frames[this.CurrentFrameTick];
-        var current_pos = this.Controller.PlayerPawn.Value!.AbsOrigin!;
+        var current_pos = this.Controller!.PlayerPawn.Value!.AbsOrigin!;
 
         bool is_on_ground = (current_frame.Flags & (uint)PlayerFlags.FL_ONGROUND) != 0;
         bool is_ducking = (current_frame.Flags & (uint)PlayerFlags.FL_DUCKING) != 0;
@@ -92,7 +100,7 @@ internal class ReplayPlayer
 
     public void LoadReplayData(TimerDatabase DB, Map current_map) 
     {
-        if (this.Controller == null)
+        if (!this.IsPlayable)
             return;
         // TODO: make query for wr too
         Task<MySqlDataReader> dbTask = DB.Query($@"
@@ -121,12 +129,12 @@ internal class ReplayPlayer
 
     private void FormatBotName(Map current_map)
     {
-        if (this.Controller == null)
+        if (!this.IsPlayable)
             return;
 
-        SchemaString<CBasePlayerController> bot_name = new SchemaString<CBasePlayerController>(this.Controller, "m_iszPlayerName");
+        SchemaString<CBasePlayerController> bot_name = new SchemaString<CBasePlayerController>(this.Controller!, "m_iszPlayerName");
         // Revisit, FORMAT CORECTLLY
         bot_name.Set($"[WR] {current_map.WR[0].Name} | {PlayerHUD.FormatTime(current_map.WR[0].Ticks)}");
-        Utilities.SetStateChanged(this.Controller, "CBasePlayerController", "m_iszPlayerName");
+        Utilities.SetStateChanged(this.Controller!, "CBasePlayerController", "m_iszPlayerName");
     }
 }

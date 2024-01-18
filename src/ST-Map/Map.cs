@@ -21,7 +21,7 @@ internal class Map
     public int LastPlayed {get; set;} = 0;
     public int TotalCompletions {get; set;} = 0;
     public Dictionary<int, PersonalBest> WR { get; set; } = new Dictionary<int, PersonalBest>();
-    public ReplayPlayer ReplayBot { get; set; } = new ReplayPlayer();
+    public List<ReplayPlayer> ReplayBots { get; set; } = new List<ReplayPlayer> { new ReplayPlayer() };
 
     // Zone Origin Information
     // Map start/end zones
@@ -216,6 +216,21 @@ internal class Map
 
         // Initiates getting the World Records for the map
         GetMapRecordAndTotals(DB); // To-do: Implement styles
+
+        int bot_quota = 1;
+        if(this.Stages > 0)
+        {
+            this.ReplayBots.Add(new ReplayPlayer());
+            bot_quota++;
+        }
+        if(this.Bonuses > 0)
+        {
+            this.ReplayBots.Add(new ReplayPlayer());
+            bot_quota++;
+        }
+        Server.NextFrame(() => {
+            Server.ExecuteCommand($"bot_quota {bot_quota}");
+        });
     }
 
     public bool IsInZone(Vector zoneOrigin, float zoneCollisionRadius, Vector spawnOrigin)
