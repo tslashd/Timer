@@ -47,7 +47,7 @@ public partial class SurfTimer
             return;
 
         int stage = Int32.Parse(command.ArgByIndex(1)) - 1;
-        if (stage > CurrentMap.Stages - 1)
+        if (stage > CurrentMap.Stages - 1 && CurrentMap.Stages > 0)
             stage = CurrentMap.Stages - 1;
 
         // Must be 1 argument
