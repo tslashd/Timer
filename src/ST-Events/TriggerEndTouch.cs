@@ -50,6 +50,7 @@ public partial class SurfTimer
 
                     // MAP START ZONE
                     player.Timer.Start();
+                    player.ReplayRecorder.CurrentSituation = ReplayFrameSituation.START_RUN;
 
                     // string PracticeString = "";
                     // if (player.Timer.IsPracticeMode)

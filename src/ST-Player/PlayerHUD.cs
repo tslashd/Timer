@@ -109,8 +109,9 @@ internal class PlayerHUD
 
                 string replayModule = $"{FormatHUDElementHTML("", "REPLAY", "red", "large")}";
                 string nameModule = FormatHUDElementHTML($"{_player.CurrMap.WR[_player.Timer.Style].Name}", $"{FormatTime(_player.CurrMap.WR[_player.Timer.Style].Ticks)}", "#ffd500");
-                string elapsed_ticks = FormatHUDElementHTML("Tick", $"{_player.CurrMap.ReplayBots[i].CurrentFrameTick}/{_player.CurrMap.ReplayBots[i].Frames.Count}", "#7882dd");
-                string hud = $"{replayModule}<br>{elapsed_ticks}<br>{nameModule}";
+
+                string elapsed_time = FormatHUDElementHTML("Time", $"{PlayerHUD.FormatTime(_player.CurrMap.ReplayBots[i].Stat_RunTick)}", "#7882dd");
+                string hud = $"{replayModule}<br>{elapsed_time}<br>{nameModule}";
 
                 _player.Controller.PrintToCenterHtml(hud);
             }

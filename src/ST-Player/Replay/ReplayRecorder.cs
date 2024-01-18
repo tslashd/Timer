@@ -7,6 +7,7 @@ namespace SurfTimer;
 internal class ReplayRecorder
 {
     public bool IsRecording { get; set; } = false;
+    public ReplayFrameSituation CurrentSituation { get; set; } = ReplayFrameSituation.NONE;
     public List<ReplayFrame> Frames { get; set; } = new List<ReplayFrame>();
 
     public void Reset() 
@@ -48,12 +49,16 @@ internal class ReplayRecorder
         {
             Pos = new Vector(player_pos.X, player_pos.Y, player_pos.Z),
             Ang = new QAngle(player_angle.X, player_angle.Y, player_angle.Z),
+            Situation = (uint)this.CurrentSituation,
             Button = player_button,
             Flags = player_flags,
             MoveType = player_move_type,
         };
 
         this.Frames.Add(frame);
+
+        // Every Situation should last for at most, 1 tick
+        this.CurrentSituation = ReplayFrameSituation.NONE;
     }
 
     /// <summary>

@@ -51,6 +51,7 @@ public partial class SurfTimer
                     if (player.Timer.IsRunning)
                     {
                         player.Timer.Stop();
+                        player.ReplayRecorder.CurrentSituation = ReplayFrameSituation.END_RUN;
 
                         player.Stats.ThisRun.Ticks = player.Timer.Ticks; // End time for the run
                         player.Stats.ThisRun.EndVelX = velocity_x; // End pre speed for the run

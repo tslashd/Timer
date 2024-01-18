@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using CounterStrikeSharp.API;
@@ -14,6 +15,11 @@ internal class ReplayPlayer
     public bool IsOnRepeat { get; set; } = true; // Currently should always repeat
     public bool IsPlayable { get; set; } = false;
 
+
+    // Stats for replay displaying
+    public bool Stat_IsRunning { get; set; } = false;
+    public int Stat_RunTick { get; set; } = 0;
+
     // Tracking
     public List<ReplayFrame> Frames { get; set; } = new List<ReplayFrame>();
 
@@ -27,6 +33,9 @@ internal class ReplayPlayer
     {
         this.CurrentFrameTick = 0;
         this.FrameTickIncrement = 1;
+
+        this.Stat_IsRunning = false;
+        this.Stat_RunTick = 0;
     }
 
     public void Reset() 
@@ -64,7 +73,10 @@ internal class ReplayPlayer
     public void Pause() 
     {
         if (this.IsPlaying)
+        {
             this.IsPaused = !this.IsPaused;
+            this.Stat_IsRunning = !this.Stat_IsRunning;
+        }
     }
 
     public void Tick() 
@@ -73,6 +85,35 @@ internal class ReplayPlayer
             return;
 
         ReplayFrame current_frame = this.Frames[this.CurrentFrameTick];
+
+
+        // SOME BLASHPEMY FOR YOU
+        if (this.FrameTickIncrement >= 0)
+        {
+            if (current_frame.Situation == (uint)ReplayFrameSituation.START_RUN)
+            {
+                this.Stat_IsRunning = true;
+                this.Stat_RunTick = 0;
+            }
+            else if (current_frame.Situation == (uint)ReplayFrameSituation.END_RUN)
+            {
+                this.Stat_IsRunning = false;
+            }
+        }
+        else
+        {
+            if (current_frame.Situation == (uint)ReplayFrameSituation.START_RUN)
+            {
+                this.Stat_IsRunning = false;
+            }
+            else if (current_frame.Situation == (uint)ReplayFrameSituation.END_RUN)
+            {
+                this.Stat_IsRunning = true;
+                this.Stat_RunTick = this.CurrentFrameTick - (64*2); // (64*2) counts for the 2 seconds before run actually starts
+            }
+        }
+        // END OF BLASPHEMY
+
         var current_pos = this.Controller!.PlayerPawn.Value!.AbsOrigin!;
 
         bool is_on_ground = (current_frame.Flags & (uint)PlayerFlags.FL_ONGROUND) != 0;
@@ -92,7 +133,11 @@ internal class ReplayPlayer
                 
 
         if (!this.IsPaused)
+        {
             this.CurrentFrameTick = Math.Max(0, this.CurrentFrameTick + this.FrameTickIncrement);
+            if (this.Stat_IsRunning)
+                this.Stat_RunTick = Math.Max(0, this.Stat_RunTick + this.FrameTickIncrement);
+        }
 
         if(this.CurrentFrameTick >= this.Frames.Count) 
             this.ResetReplay();
@@ -124,7 +169,6 @@ internal class ReplayPlayer
         }
         mapTimeReplay.Close();
         dbTask.Dispose();
-
     }
 
     private void FormatBotName(Map current_map)
