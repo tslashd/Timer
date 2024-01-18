@@ -183,7 +183,13 @@ public partial class SurfTimer
         }
 
         if(command.ArgCount > 1)
-            p.CurrentSavedLocation = int.Parse(command.ArgByIndex(1));
+            try
+            {
+                int tele_n = int.Parse(command.ArgByIndex(1));
+                if (tele_n < p.SavedLocations.Count)
+                    p.CurrentSavedLocation = tele_n;
+            }
+            catch { }
         SavelocFrame location = p.SavedLocations[p.CurrentSavedLocation];
         Server.NextFrame(() => {
             p.Controller.PlayerPawn.Value!.Teleport(location.Pos, location.Ang, location.Vel);
