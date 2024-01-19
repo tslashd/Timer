@@ -105,7 +105,7 @@ public partial class SurfTimer
                             });
 
                             // If run better than wr, load the replay time
-                            if(player.Timer.Ticks < CurrentMap.WR[player.Timer.Style].Ticks)
+                            if(player.Timer.Ticks < CurrentMap.WR[player.Timer.Style].Ticks || CurrentMap.WR[player.Timer.Style].ID == -1)
                             {
                                 AddTimer(2f, () => {
                                     CurrentMap.ReplayBots[CurrentMap.ReplayBots.Count-1].Stat_MapTimeID = CurrentMap.WR[player.Timer.Style].ID;
