@@ -14,9 +14,14 @@ public partial class SurfTimer
             player.HUD.Display();
         }
 
-        for(int i = 0; i < CurrentMap?.ReplayBots.Count; i++)
+        if (CurrentMap == null)
+            return;
+
+        for(int i = 0; i < CurrentMap!.ReplayBots.Count; i++)
         {
-            CurrentMap?.ReplayBots[i].Tick();
+            CurrentMap.ReplayBots[i].Tick();
+            if (CurrentMap.ReplayBots[i].RepeatCount == 0)
+                CurrentMap.KickReplayBot(i);
         }
     }
 }

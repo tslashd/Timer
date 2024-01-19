@@ -61,7 +61,15 @@ internal class ReplayRecorder
         this.CurrentSituation = ReplayFrameSituation.NONE;
     }
 
+    public string SerializeReplay()
+    {
+        JsonSerializerOptions options = new JsonSerializerOptions {WriteIndented = false, Converters = { new VectorConverter(), new QAngleConverter() }};
+        string replay_frames = JsonSerializer.Serialize(Frames, options);
+        return Compressor.Compress(replay_frames);
+    }
+
     /// <summary>
+    /// **Deprecated**
     /// [ player_id | maptime_id | replay_frames ]
     /// @ Adding a replay data for a run (PB/WR)
     /// @ Data saved can be accessed with `ReplayPlayer.LoadReplayData`

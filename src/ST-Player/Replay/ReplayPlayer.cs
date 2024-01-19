@@ -12,11 +12,16 @@ internal class ReplayPlayer
 {
     public bool IsPlaying { get; set; } = false;
     public bool IsPaused { get; set; } = false;
-    public bool IsOnRepeat { get; set; } = true; // Currently should always repeat
     public bool IsPlayable { get; set; } = false;
 
+    // Tracking for replay counting
+    public int RepeatCount { get; set; } = -1;
 
     // Stats for replay displaying
+    public int Stat_MapTimeID { get; set; } = -1;
+    public string Stat_Prefix { get; set; } = "WR";
+    public string Stat_PlayerName { get; set; } = "None";
+    public int Stat_RunTime { get; set; } = 0;
     public bool Stat_IsRunning { get; set; } = false;
     public int Stat_RunTick { get; set; } = 0;
 
@@ -33,6 +38,8 @@ internal class ReplayPlayer
     {
         this.CurrentFrameTick = 0;
         this.FrameTickIncrement = 1;
+        if(this.RepeatCount > 0)
+            this.RepeatCount--;
 
         this.Stat_IsRunning = false;
         this.Stat_RunTick = 0;
@@ -43,6 +50,7 @@ internal class ReplayPlayer
         this.IsPlaying = false;
         this.IsPaused = false;
         this.IsPlayable = false;
+        this.RepeatCount = -1;
 
         this.Frames.Clear();
 
@@ -51,9 +59,10 @@ internal class ReplayPlayer
         this.Controller = null;
     }
 
-    public void SetController(CCSPlayerController c)
+    public void SetController(CCSPlayerController c, int repeat_count = -1)
     {
         this.Controller = c;
+        this.RepeatCount = repeat_count;
         this.IsPlayable = true;
     }
 
@@ -143,14 +152,16 @@ internal class ReplayPlayer
             this.ResetReplay();
     }
 
-    public void LoadReplayData(TimerDatabase DB, Map current_map) 
+    public void LoadReplayData(TimerDatabase DB) 
     {
         if (!this.IsPlayable)
             return;
         // TODO: make query for wr too
         Task<MySqlDataReader> dbTask = DB.Query($@"
-            SELECT `replay_frames` FROM MapTimeReplay 
-            WHERE `map_id`={current_map.ID} AND `maptime_id`={current_map.WR[0].ID} 
+            SELECT MapTimes.replay_frames, MapTimes.run_time, Player.name
+            FROM MapTimes
+            JOIN Player ON MapTimes.player_id = Player.id
+            WHERE MapTimes.id={this.Stat_MapTimeID}
         ");
         MySqlDataReader mapTimeReplay = dbTask.Result;
         if(!mapTimeReplay.HasRows) 
@@ -164,21 +175,24 @@ internal class ReplayPlayer
             {
                 string json = Compressor.Decompress(Encoding.UTF8.GetString((byte[])mapTimeReplay[0]));
                 this.Frames = JsonSerializer.Deserialize<List<ReplayFrame>>(json, options)!;
+
+                this.Stat_RunTime = mapTimeReplay.GetInt32("run_time");
+                this.Stat_PlayerName = mapTimeReplay.GetString("name");
             }
-            FormatBotName(current_map);
+            FormatBotName();
         }
         mapTimeReplay.Close();
         dbTask.Dispose();
     }
 
-    private void FormatBotName(Map current_map)
+    private void FormatBotName()
     {
         if (!this.IsPlayable)
             return;
 
         SchemaString<CBasePlayerController> bot_name = new SchemaString<CBasePlayerController>(this.Controller!, "m_iszPlayerName");
         // Revisit, FORMAT CORECTLLY
-        bot_name.Set($"[WR] {current_map.WR[0].Name} | {PlayerHUD.FormatTime(current_map.WR[0].Ticks)}");
+        bot_name.Set($"[{this.Stat_Prefix}] {this.Stat_PlayerName} | {PlayerHUD.FormatTime(this.Stat_RunTime)}");
         Utilities.SetStateChanged(this.Controller!, "CBasePlayerController", "m_iszPlayerName");
     }
 }

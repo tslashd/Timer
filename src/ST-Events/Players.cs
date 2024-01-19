@@ -20,21 +20,23 @@ public partial class SurfTimer
         {
             for (int i = 0; i < CurrentMap.ReplayBots.Count; i++)
             {
-                if(!CurrentMap.ReplayBots[i].IsPlayable)
-                {
-                    // Currently only for Map
-                    if(i == 0) {
-                        CurrentMap.ReplayBots[0].SetController(controller);
-                        Server.PrintToChatAll($"{ChatColors.Lime} Loading replay data..."); // WHY COLORS NOT WORKING AHHHHH!!!!!
-                        AddTimer(2f, () => {
-                            CurrentMap.ReplayBots[0].Controller!.RemoveWeapons();
-                            
-                            CurrentMap.ReplayBots[0].LoadReplayData(DB!, CurrentMap);
+                if(CurrentMap.ReplayBots[i].IsPlayable)
+                    continue;
 
-                            CurrentMap.ReplayBots[0].Start();
-                        });
-                    }
-                }
+                int repeats = -1;
+                if(CurrentMap.ReplayBots[i].Stat_Prefix == "PB")
+                    repeats = 3;
+                
+                CurrentMap.ReplayBots[i].SetController(controller, repeats);
+                Server.PrintToChatAll($"{ChatColors.Lime} Loading replay data...");
+                AddTimer(2f, () => {
+                    CurrentMap.ReplayBots[i].Controller!.RemoveWeapons();
+                    
+                    CurrentMap.ReplayBots[i].LoadReplayData(DB!);
+
+                    CurrentMap.ReplayBots[i].Start();
+                });
+                return HookResult.Continue;
             }
         }
 

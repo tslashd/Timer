@@ -96,18 +96,23 @@ public partial class SurfTimer
 
                         // Add entry in DB for the run
                         if(!player.Timer.IsPracticeMode) {
-                            player.Stats.ThisRun.SaveMapTime(player, DB); // Save the MapTime PB data
-                            player.Stats.LoadMapTimesData(player, DB); // Load the MapTime PB data again (will refresh the MapTime ID for the Checkpoints query)
-                            player.Stats.ThisRun.SaveCurrentRunCheckpoints(player, DB); // Save this run's checkpoints
-                            player.Stats.LoadCheckpointsData(DB); // Reload checkpoints for the run - we should really have this in `SaveMapTime` as well but we don't re-load PB data inside there so we need to do it here
-                            CurrentMap.GetMapRecordAndTotals(DB); // Reload the Map record and totals for the HUD
-
-                            // Replay - Add end buffer for replay
-                            AddTimer(1.5f, () => player.ReplayRecorder.SaveReplayData(player, DB));
-                            AddTimer(2f, () => {
-                                CurrentMap.ReplayBots[0].LoadReplayData(DB!, CurrentMap);
-                                CurrentMap.ReplayBots[0].ResetReplay();
+                            AddTimer(1.5f, () => {
+                                player.Stats.ThisRun.SaveMapTime(player, DB); // Save the MapTime PB data
+                                player.Stats.LoadMapTimesData(player, DB); // Load the MapTime PB data again (will refresh the MapTime ID for the Checkpoints query)
+                                player.Stats.ThisRun.SaveCurrentRunCheckpoints(player, DB); // Save this run's checkpoints
+                                player.Stats.LoadCheckpointsData(DB); // Reload checkpoints for the run - we should really have this in `SaveMapTime` as well but we don't re-load PB data inside there so we need to do it here
+                                CurrentMap.GetMapRecordAndTotals(DB); // Reload the Map record and totals for the HUD
                             });
+
+                            // If run better than wr, load the replay time
+                            if(player.Timer.Ticks < CurrentMap.WR[player.Timer.Style].Ticks)
+                            {
+                                AddTimer(2f, () => {
+                                    CurrentMap.ReplayBots[CurrentMap.ReplayBots.Count-1].Stat_MapTimeID = CurrentMap.WR[player.Timer.Style].ID;
+                                    CurrentMap.ReplayBots[CurrentMap.ReplayBots.Count-1].LoadReplayData(DB!);
+                                    CurrentMap.ReplayBots[CurrentMap.ReplayBots.Count-1].ResetReplay();
+                                });
+                            }
                         }
                     }
 
