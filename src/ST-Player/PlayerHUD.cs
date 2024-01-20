@@ -104,7 +104,7 @@ internal class PlayerHUD
         {
             for (int i = 0; i < _player.CurrMap.ReplayBots.Count; i++)
             {
-                if (_player.CurrMap.ReplayBots[i].Controller?.Pawn.SerialNum != _player.Controller.ObserverPawn.Value!.ObserverServices!.ObserverTarget.SerialNum)
+                if(!_player.CurrMap.ReplayBots[i].IsPlayable || !_player.IsSpectating(_player.CurrMap.ReplayBots[i].Controller!))
                     continue;
 
                 string replayModule = $"{FormatHUDElementHTML("", "REPLAY", "red", "large")}";

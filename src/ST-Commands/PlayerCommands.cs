@@ -107,7 +107,7 @@ public partial class SurfTimer
 
         foreach(ReplayPlayer rb in CurrentMap.ReplayBots)
         {
-            if(!rb.IsPlayable || !rb.IsPlaying || rb.Controller!.Pawn.SerialNum != player.ObserverPawn.Value!.ObserverServices!.ObserverTarget.SerialNum)
+            if(!rb.IsPlayable || !rb.IsPlaying || !playerList[player.UserId ?? 0].IsSpectating(rb.Controller!))
                 continue;
             
             rb.Pause();
@@ -123,7 +123,7 @@ public partial class SurfTimer
 
         foreach(ReplayPlayer rb in CurrentMap.ReplayBots)
         {
-            if(!rb.IsPlayable || !rb.IsPlaying || rb.Controller!.Pawn.SerialNum != player.ObserverPawn.Value!.ObserverServices!.ObserverTarget.SerialNum)
+            if(!rb.IsPlayable || !rb.IsPlaying || !playerList[player.UserId ?? 0].IsSpectating(rb.Controller!))
                 continue;
             
             rb.FrameTickIncrement *= -1;

@@ -218,18 +218,12 @@ internal class Map
         // Initiates getting the World Records for the map
         GetMapRecordAndTotals(DB); // To-do: Implement styles
 
-        this.ReplayBots[0].Stat_MapTimeID = this.WR[0].ID;
-        if(this.Stages > 0)
-        {
+        this.ReplayBots[0].Stat_MapTimeID = this.WR[0].ID; // Sets WrIndex to WR maptime_id
+        if(this.Stages > 0) // If stages map adds bot
             this.ReplayBots = this.ReplayBots.Prepend(new ReplayPlayer()).ToList();
-        }
-        if(this.Bonuses > 0)
-        {
+
+        if(this.Bonuses > 0) // If has bonuses adds bot
             this.ReplayBots = this.ReplayBots.Prepend(new ReplayPlayer()).ToList();
-        }
-        Server.NextFrame(() => {
-            Server.ExecuteCommand($"bot_quota {this.ReplayBots.Count}");
-        });
     }
 
     public void KickReplayBot(int index)

@@ -38,4 +38,15 @@ internal class Player
         this.HUD = new PlayerHUD(this);
         this.CurrMap = CurrMap;
     }
+
+    /// <summary>
+    /// Checks if current player is spcetating player <p>
+    /// </summary>
+    public bool IsSpectating(CCSPlayerController p)
+    {
+        if(p == null || this.Controller == null || this.Controller.Team != CounterStrikeSharp.API.Modules.Utils.CsTeam.Spectator)
+            return false;
+
+        return p.Pawn.SerialNum == this.Controller.ObserverPawn.Value!.ObserverServices!.ObserverTarget.SerialNum;
+    }
 }

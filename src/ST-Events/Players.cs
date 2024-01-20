@@ -13,33 +13,32 @@ public partial class SurfTimer
     public HookResult OnPlayerSpawn(EventPlayerSpawn @event, GameEventInfo info)
     {
         var controller = @event.Userid;
-        if(!controller.IsValid)
+        if(!controller.IsValid || !controller.IsBot)
             return HookResult.Continue;
 
-        if(controller.IsBot)
+        for (int i = 0; i < CurrentMap.ReplayBots.Count; i++)
         {
-            for (int i = 0; i < CurrentMap.ReplayBots.Count; i++)
-            {
-                if(CurrentMap.ReplayBots[i].IsPlayable)
-                    continue;
+            if(CurrentMap.ReplayBots[i].IsPlayable)
+                continue;
 
-                int repeats = -1;
-                if(CurrentMap.ReplayBots[i].Stat_Prefix == "PB")
-                    repeats = 3;
+            int repeats = -1;
+            if(CurrentMap.ReplayBots[i].Stat_Prefix == "PB")
+                repeats = 3;
+            
+            CurrentMap.ReplayBots[i].SetController(controller, repeats);
+            Server.PrintToChatAll($"{ChatColors.Lime} Loading replay data...");
+            AddTimer(2f, () => {
+                if(!CurrentMap.ReplayBots[i].IsPlayable)
+                    return;
+
+                CurrentMap.ReplayBots[i].Controller!.RemoveWeapons();
                 
-                CurrentMap.ReplayBots[i].SetController(controller, repeats);
-                Server.PrintToChatAll($"{ChatColors.Lime} Loading replay data...");
-                AddTimer(2f, () => {
-                    if(CurrentMap.ReplayBots[i].Controller == null)
-                        return;
-                    CurrentMap.ReplayBots[i].Controller!.RemoveWeapons();
-                    
-                    CurrentMap.ReplayBots[i].LoadReplayData(DB!);
+                CurrentMap.ReplayBots[i].LoadReplayData(DB!);
 
-                    CurrentMap.ReplayBots[i].Start();
-                });
-                return HookResult.Continue;
-            }
+                CurrentMap.ReplayBots[i].Start();
+            });
+            
+            return HookResult.Continue;
         }
 
         return HookResult.Continue;

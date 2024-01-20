@@ -1,6 +1,4 @@
-using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Cvars;
-using CounterStrikeSharp.API.Modules.Utils;
 
 namespace SurfTimer;
 
@@ -28,8 +26,6 @@ public partial class SurfTimer
                 bot_quota.SetValue(CurrentMap.ReplayBots.Count);
             }
         }
-
-
 
         for(int i = 0; i < CurrentMap!.ReplayBots.Count; i++)
         {

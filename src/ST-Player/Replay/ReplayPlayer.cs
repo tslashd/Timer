@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using CounterStrikeSharp.API;
@@ -18,9 +17,9 @@ internal class ReplayPlayer
     public int RepeatCount { get; set; } = -1;
 
     // Stats for replay displaying
-    public int Stat_MapTimeID { get; set; } = -1;
     public string Stat_Prefix { get; set; } = "WR";
-    public string Stat_PlayerName { get; set; } = "None";
+    public string Stat_PlayerName { get; set; } = "N/A";
+    public int Stat_MapTimeID { get; set; } = -1;
     public int Stat_RunTime { get; set; } = 0;
     public bool Stat_IsRunning { get; set; } = false;
     public int Stat_RunTick { get; set; } = 0;
@@ -68,7 +67,7 @@ internal class ReplayPlayer
 
     public void Start() 
     {
-        if (this.Controller == null)
+        if (!this.IsPlayable)
             return;
 
         this.IsPlaying = true;
@@ -81,11 +80,11 @@ internal class ReplayPlayer
 
     public void Pause() 
     {
-        if (this.IsPlaying)
-        {
-            this.IsPaused = !this.IsPaused;
-            this.Stat_IsRunning = !this.Stat_IsRunning;
-        }
+        if (!this.IsPlaying)
+            return;
+
+        this.IsPaused = !this.IsPaused;
+        this.Stat_IsRunning = !this.Stat_IsRunning;
     }
 
     public void Tick() 
@@ -94,7 +93,6 @@ internal class ReplayPlayer
             return;
 
         ReplayFrame current_frame = this.Frames[this.CurrentFrameTick];
-
 
         // SOME BLASHPEMY FOR YOU
         if (this.FrameTickIncrement >= 0)
@@ -126,7 +124,6 @@ internal class ReplayPlayer
         var current_pos = this.Controller!.PlayerPawn.Value!.AbsOrigin!;
 
         bool is_on_ground = (current_frame.Flags & (uint)PlayerFlags.FL_ONGROUND) != 0;
-        bool is_ducking = (current_frame.Flags & (uint)PlayerFlags.FL_DUCKING) != 0;
 
         Vector velocity = (current_frame.Pos - current_pos) * 64;
 
@@ -156,13 +153,14 @@ internal class ReplayPlayer
     {
         if (!this.IsPlayable)
             return;
-        // TODO: make query for wr too
+
         Task<MySqlDataReader> dbTask = DB.Query($@"
             SELECT MapTimes.replay_frames, MapTimes.run_time, Player.name
             FROM MapTimes
             JOIN Player ON MapTimes.player_id = Player.id
             WHERE MapTimes.id={this.Stat_MapTimeID}
         ");
+
         MySqlDataReader mapTimeReplay = dbTask.Result;
         if(!mapTimeReplay.HasRows) 
         {
@@ -191,8 +189,12 @@ internal class ReplayPlayer
             return;
 
         SchemaString<CBasePlayerController> bot_name = new SchemaString<CBasePlayerController>(this.Controller!, "m_iszPlayerName");
-        // Revisit, FORMAT CORECTLLY
-        bot_name.Set($"[{this.Stat_Prefix}] {this.Stat_PlayerName} | {PlayerHUD.FormatTime(this.Stat_RunTime)}");
+
+        string replay_name = $"[{this.Stat_Prefix}] {this.Stat_PlayerName} | {PlayerHUD.FormatTime(this.Stat_RunTime)}";
+        if(this.Stat_RunTime <= 0)
+            replay_name = $"[{this.Stat_Prefix}] {this.Stat_PlayerName}";
+
+        bot_name.Set(replay_name);
         Utilities.SetStateChanged(this.Controller!, "CBasePlayerController", "m_iszPlayerName");
     }
 }

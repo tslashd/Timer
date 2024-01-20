@@ -104,13 +104,14 @@ public partial class SurfTimer
                                 CurrentMap.GetMapRecordAndTotals(DB); // Reload the Map record and totals for the HUD
                             });
 
-                            // If run better than wr, load the replay time
+                            // This section checks if the PB is better than WR
                             if(player.Timer.Ticks < CurrentMap.WR[player.Timer.Style].Ticks || CurrentMap.WR[player.Timer.Style].ID == -1)
                             {
+                                int WrIndex = CurrentMap.ReplayBots.Count-1; // As the ReplaysBot is set, WR Index will always be at the end of the List
                                 AddTimer(2f, () => {
-                                    CurrentMap.ReplayBots[CurrentMap.ReplayBots.Count-1].Stat_MapTimeID = CurrentMap.WR[player.Timer.Style].ID;
-                                    CurrentMap.ReplayBots[CurrentMap.ReplayBots.Count-1].LoadReplayData(DB!);
-                                    CurrentMap.ReplayBots[CurrentMap.ReplayBots.Count-1].ResetReplay();
+                                    CurrentMap.ReplayBots[WrIndex].Stat_MapTimeID = CurrentMap.WR[player.Timer.Style].ID;
+                                    CurrentMap.ReplayBots[WrIndex].LoadReplayData(DB!);
+                                    CurrentMap.ReplayBots[WrIndex].ResetReplay();
                                 });
                             }
                         }
