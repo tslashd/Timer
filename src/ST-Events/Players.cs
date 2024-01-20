@@ -9,7 +9,7 @@ namespace SurfTimer;
 
 public partial class SurfTimer
 {
-    [GameEventHandler(HookMode.Post)]
+    [GameEventHandler]
     public HookResult OnPlayerSpawn(EventPlayerSpawn @event, GameEventInfo info)
     {
         var controller = @event.Userid;
@@ -30,6 +30,8 @@ public partial class SurfTimer
                 CurrentMap.ReplayBots[i].SetController(controller, repeats);
                 Server.PrintToChatAll($"{ChatColors.Lime} Loading replay data...");
                 AddTimer(2f, () => {
+                    if(CurrentMap.ReplayBots[i].Controller == null)
+                        return;
                     CurrentMap.ReplayBots[i].Controller!.RemoveWeapons();
                     
                     CurrentMap.ReplayBots[i].LoadReplayData(DB!);
