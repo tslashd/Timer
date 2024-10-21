@@ -44,10 +44,12 @@ internal class PlayerHUD
         {
             case PlayerTimer.TimeFormatStyle.Compact:
                 return time.TotalMinutes < 1
-                    ? $"{time.Seconds:D1}.{millis:D3}"
-                    : $"{time.Minutes:D1}:{time.Seconds:D1}.{millis:D3}";
+                    ? $"{time.Seconds:D2}.{millis:D3}"
+                    : $"{time.Minutes:D1}:{time.Seconds:D2}.{millis:D3}";
             case PlayerTimer.TimeFormatStyle.Full:
-                return $"{time.Hours:D2}:{time.Minutes:D2}:{time.Seconds:D2}.{millis:D3}";
+                return time.TotalHours < 1 
+                    ? $"{time.Minutes:D2}:{time.Seconds:D2}.{millis:D3}"
+                    : $"{time.Hours:D2}:{time.Minutes:D2}:{time.Seconds:D2}.{millis:D3}";
             case PlayerTimer.TimeFormatStyle.Verbose:
                 return $"{time.Hours}h {time.Minutes}m {time.Seconds}s {millis}ms";
             default:
@@ -73,7 +75,14 @@ internal class PlayerHUD
                 else
                     timerColor = "#2E9F65";
             }
-            string timerModule = FormatHUDElementHTML("", FormatTime(_player.Timer.Ticks), timerColor);
+
+            string timerModule;
+            if (_player.Timer.IsBonusMode)
+                timerModule = FormatHUDElementHTML("", $"[B{_player.Timer.Bonus}] "+FormatTime(_player.Timer.Ticks), timerColor);
+            else if (_player.Timer.IsStageMode)
+                timerModule = FormatHUDElementHTML("", $"[S{_player.Timer.Stage}] "+FormatTime(_player.Timer.Ticks), timerColor);
+            else
+                timerModule = FormatHUDElementHTML("", FormatTime(_player.Timer.Ticks), timerColor);
 
             // Velocity Module - To-do: Make velocity module configurable (XY or XYZ velocity)
             float velocity = (float)Math.Sqrt(_player.Controller.PlayerPawn.Value!.AbsVelocity.X * _player.Controller.PlayerPawn.Value!.AbsVelocity.X
@@ -82,17 +91,31 @@ internal class PlayerHUD
             string velocityModule = FormatHUDElementHTML("Speed", velocity.ToString("0"), "#79d1ed") + " u/s";
             // Rank Module
             string rankModule = FormatHUDElementHTML("Rank", $"N/A", "#7882dd");
-            if (_player.Stats.PB[style].ID != -1 && _player.CurrMap.WR[style].ID != -1)
+            if (_player.Timer.IsBonusMode)
             {
-                rankModule = FormatHUDElementHTML("Rank", $"{_player.Stats.PB[style].Rank}/{_player.CurrMap.TotalCompletions}", "#7882dd");
+                if (_player.Stats.BonusPB[_player.Timer.Bonus][style].ID != -1 && _player.CurrMap.BonusWR[_player.Timer.Bonus][style].ID != -1)
+                    rankModule = FormatHUDElementHTML("Rank", $"{_player.Stats.BonusPB[_player.Timer.Bonus][style].Rank}/{_player.CurrMap.BonusCompletions[_player.Timer.Bonus][style]}", "#7882dd");
+                else if (_player.CurrMap.BonusWR[_player.Timer.Bonus][style].ID != -1)
+                    rankModule = FormatHUDElementHTML("Rank", $"-/{_player.CurrMap.BonusCompletions[_player.Timer.Bonus][style]}", "#7882dd");
             }
-            else if (_player.CurrMap.WR[style].ID != -1)
+
+            else
             {
-                rankModule = FormatHUDElementHTML("Rank", $"-/{_player.CurrMap.TotalCompletions}", "#7882dd");
+                if (_player.Stats.PB[style].ID != -1 && _player.CurrMap.WR[style].ID != -1)
+                    rankModule = FormatHUDElementHTML("Rank", $"{_player.Stats.PB[style].Rank}/{_player.CurrMap.MapCompletions[style]}", "#7882dd");
+                else if (_player.CurrMap.WR[style].ID != -1)
+                    rankModule = FormatHUDElementHTML("Rank", $"-/{_player.CurrMap.MapCompletions[style]}", "#7882dd");
             }
+            
             // PB & WR Modules
-            string pbModule = FormatHUDElementHTML("PB", _player.Stats.PB[style].Ticks > 0 ? FormatTime(_player.Stats.PB[style].Ticks) : "N/A", "#7882dd"); // IMPLEMENT IN PlayerStats // To-do: make Style (currently 0) be dynamic
-            string wrModule = FormatHUDElementHTML("WR", _player.CurrMap.WR[style].Ticks > 0 ? FormatTime(_player.CurrMap.WR[style].Ticks) : "N/A", "#ffc61a"); // IMPLEMENT IN PlayerStats - This should be part of CurrentMap, not PlayerStats?
+            string pbModule = FormatHUDElementHTML("PB", _player.Stats.PB[style].Ticks > 0 ? FormatTime(_player.Stats.PB[style].Ticks) : "N/A", "#7882dd"); // To-do: make Style (currently 0) be dynamic
+            string wrModule = FormatHUDElementHTML("WR", _player.CurrMap.WR[style].Ticks > 0 ? FormatTime(_player.CurrMap.WR[style].Ticks) : "N/A", "#ffc61a"); // To-do: make Style (currently 0) be dynamic
+
+            if (_player.Timer.Bonus > 0 && _player.Timer.IsBonusMode) // Show corresponding bonus values
+            {
+                pbModule = FormatHUDElementHTML("PB", _player.Stats.BonusPB[_player.Timer.Bonus][style].Ticks > 0 ? FormatTime(_player.Stats.BonusPB[_player.Timer.Bonus][style].Ticks) : "N/A", "#7882dd"); // To-do: make Style (currently 0) be dynamic
+                wrModule = FormatHUDElementHTML("WR", _player.CurrMap.BonusWR[_player.Timer.Bonus][style].Ticks > 0 ? FormatTime(_player.CurrMap.BonusWR[_player.Timer.Bonus][style].Ticks) : "N/A", "#ffc61a"); // To-do: make Style (currently 0) be dynamic
+            }
 
             // Build HUD
             string hud = $"{timerModule}<br>{velocityModule}<br>{pbModule} | {rankModule}<br>{wrModule}";
@@ -102,17 +125,21 @@ internal class PlayerHUD
         }
         else if (_player.Controller.Team == CsTeam.Spectator)
         {
-            for (int i = 0; i < _player.CurrMap.ReplayBots.Count; i++)
+            ReplayPlayer? spec_replay;
+            if (_player.IsSpectating(_player.CurrMap.ReplayManager.MapWR.Controller!))
+                spec_replay = _player.CurrMap.ReplayManager.MapWR;
+            else if (_player.IsSpectating(_player.CurrMap.ReplayManager.StageWR?.Controller!))
+                spec_replay = _player.CurrMap.ReplayManager.StageWR!;
+            else if (_player.IsSpectating(_player.CurrMap.ReplayManager.BonusWR?.Controller!))
+                spec_replay = _player.CurrMap.ReplayManager.BonusWR!;
+            else
+                spec_replay = _player.CurrMap.ReplayManager.CustomReplays.Find(x => _player.IsSpectating(x.Controller!));
+
+            if (spec_replay != null)
             {
-                if(!_player.CurrMap.ReplayBots[i].IsPlayable || !_player.IsSpectating(_player.CurrMap.ReplayBots[i].Controller!))
-                    continue;
-
                 string replayModule = $"{FormatHUDElementHTML("", "REPLAY", "red", "large")}";
-
-                string nameModule = FormatHUDElementHTML($"{_player.CurrMap.ReplayBots[i].Stat_PlayerName}", $"{FormatTime(_player.CurrMap.ReplayBots[i].Stat_RunTime)}", "#ffd500");
-
-                string elapsed_time = FormatHUDElementHTML("Time", $"{PlayerHUD.FormatTime(_player.CurrMap.ReplayBots[i].Stat_RunTick)}", "#7882dd");
-                string hud = $"{replayModule}<br>{elapsed_time}<br>{nameModule}";
+                string nameModule = FormatHUDElementHTML($"{spec_replay.RecordPlayerName}", $"{FormatTime(spec_replay.RecordRunTime)}", "#ffd500");
+                string hud = $"{replayModule}<br>{nameModule}";
 
                 _player.Controller.PrintToCenterHtml(hud);
             }

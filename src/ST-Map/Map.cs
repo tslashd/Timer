@@ -3,6 +3,12 @@ using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Utils;
 using MySqlConnector;
+using System.Text.Json.Serialization;
+using System.Text.Json;
+using System.Text;
+using System;
+using System.Net.Http.Json;
+using System.Runtime.CompilerServices;
 
 namespace SurfTimer;
 
@@ -19,10 +25,26 @@ internal class Map
     public bool Ranked {get; set;} = false;
     public int DateAdded {get; set;} = 0;
     public int LastPlayed {get; set;} = 0;
-    public int TotalCompletions {get; set;} = 0;
+    /// <summary>
+    /// Map Completion Count - Refer to as MapCompletions[style]
+    /// </summary>
+    public Dictionary<int, int> MapCompletions {get; set;} = new Dictionary<int, int>(); 
+    /// <summary>
+    /// Bonus Completion Count - Refer to as BonusCompletions[bonus#][style]
+    /// </summary>
+    public Dictionary<int, int>[] BonusCompletions { get; set; } = new Dictionary<int, int>[32];
+    public Dictionary<int, int>[] StageCompletions { get; set; } = new Dictionary<int, int>[32];
+    /// <summary>
+    /// Map World Record - Refer to as WR[style]
+    /// </summary>
     public Dictionary<int, PersonalBest> WR { get; set; } = new Dictionary<int, PersonalBest>();
+    /// <summary>
+    /// Bonus World Record - Refer to as BonusWR[bonus#][style]
+    /// </summary>
+    public Dictionary<int, PersonalBest>[] BonusWR { get; set; } = new Dictionary<int, PersonalBest>[32];
+    public Dictionary<int, PersonalBest>[] StageWR { get; set; } = new Dictionary<int, PersonalBest>[32];
     public List<int> ConnectedMapTimes { get; set; } = new List<int>();
-    public List<ReplayPlayer> ReplayBots { get; set; } = new List<ReplayPlayer> { new ReplayPlayer() };
+    // public List<ReplayPlayer> ReplayBots { get; set; } = new List<ReplayPlayer> { new ReplayPlayer() };
 
     // Zone Origin Information
     // Map start/end zones
@@ -39,12 +61,30 @@ internal class Map
     // Map checkpoint zones
     public Vector[] CheckpointStartZone {get;} = Enumerable.Repeat(0, 99).Select(x => new Vector(0,0,0)).ToArray();
 
+    public ReplayManager ReplayManager { get; set; }
+
     // Constructor
+    // To-do: This loops through all the triggers. While that's great and comprehensive, some maps have two triggers with the exact same name, because there are two
+    //        for each side of the course (left and right, for example). We should probably work on automatically catching this. 
+    //        Maybe even introduce a new naming convention?
     internal Map(string Name, TimerDatabase DB)
     {
         // Set map name
         this.Name = Name;
+
+        // Initialize WR variables
         this.WR[0] = new PersonalBest(); // To-do: Implement styles
+        for (int i = 0; i < 32; i++)
+        {
+            this.BonusWR[i] = new Dictionary<int, PersonalBest>();
+            this.BonusWR[i][0] = new PersonalBest(); // To-do: Implement styles
+            this.BonusCompletions[i] = new Dictionary<int, int>();
+
+            this.StageWR[i] = new Dictionary<int, PersonalBest>();
+            this.StageWR[i][0] = new PersonalBest(); // To-do: Implement styles
+            this.StageCompletions[i] = new Dictionary<int, int>();
+        }
+
         // Gathering zones from the map
         IEnumerable<CBaseTrigger> triggers = Utilities.FindAllEntitiesByDesignerName<CBaseTrigger>("trigger_multiple");
         // Gathering info_teleport_destinations from the map
@@ -98,8 +138,8 @@ internal class Map
                         if (teleport.Entity!.Name != null && 
                             (IsInZone(trigger.AbsOrigin!, trigger.Collision.BoundingRadius, teleport.AbsOrigin!) || (Regex.Match(teleport.Entity.Name, "^spawn_s([1-9][0-9]?|tage[1-9][0-9]?)_start$").Success && Int32.Parse(Regex.Match(teleport.Entity.Name, "[0-9][0-9]?").Value) == stage)))
                         {
-                            this.StageStartZone[stage - 1] = new Vector(teleport.AbsOrigin!.X, teleport.AbsOrigin!.Y, teleport.AbsOrigin!.Z);
-                            this.StageStartZoneAngles[stage - 1] = new QAngle(teleport.AbsRotation!.X, teleport.AbsRotation!.Y, teleport.AbsRotation!.Z);
+                            this.StageStartZone[stage] = new Vector(teleport.AbsOrigin!.X, teleport.AbsOrigin!.Y, teleport.AbsOrigin!.Z);
+                            this.StageStartZoneAngles[stage] = new QAngle(teleport.AbsRotation!.X, teleport.AbsRotation!.Y, teleport.AbsRotation!.Z);
                             this.Stages++; // Count stage zones for the map to populate DB
                             foundPlayerSpawn = true;
                             break;
@@ -108,14 +148,15 @@ internal class Map
 
                     if (!foundPlayerSpawn)
                     {
-                        this.StageStartZone[stage - 1] = new Vector(trigger.AbsOrigin!.X, trigger.AbsOrigin!.Y, trigger.AbsOrigin!.Z);
+                        this.StageStartZone[stage] = new Vector(trigger.AbsOrigin!.X, trigger.AbsOrigin!.Y, trigger.AbsOrigin!.Z);
+                        this.Stages++;
                     }
                 }
 
                 // Checkpoint start zones (linear maps)
                 else if (Regex.Match(trigger.Entity.Name, "^map_c(p[1-9][0-9]?|heckpoint[1-9][0-9]?)$").Success) 
                 {
-                    this.CheckpointStartZone[Int32.Parse(Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value) - 1] = new Vector(trigger.AbsOrigin!.X, trigger.AbsOrigin!.Y, trigger.AbsOrigin!.Z);
+                    this.CheckpointStartZone[Int32.Parse(Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value)] = new Vector(trigger.AbsOrigin!.X, trigger.AbsOrigin!.Y, trigger.AbsOrigin!.Z);
                     this.Checkpoints++; // Might be useful to have this in DB entry
                 }
                 
@@ -131,8 +172,8 @@ internal class Map
                         if (teleport.Entity!.Name != null && 
                             (IsInZone(trigger.AbsOrigin!, trigger.Collision.BoundingRadius, teleport.AbsOrigin!) || (Regex.Match(teleport.Entity.Name, "^spawn_b([1-9][0-9]?|onus[1-9][0-9]?)_start$").Success && Int32.Parse(Regex.Match(teleport.Entity.Name, "[0-9][0-9]?").Value) == bonus)))
                         {
-                            this.BonusStartZone[bonus - 1] = new Vector(teleport.AbsOrigin!.X, teleport.AbsOrigin!.Y, teleport.AbsOrigin!.Z);
-                            this.BonusStartZoneAngles[bonus - 1] = new QAngle(teleport.AbsRotation!.X, teleport.AbsRotation!.Y, teleport.AbsRotation!.Z);
+                            this.BonusStartZone[bonus] = new Vector(teleport.AbsOrigin!.X, teleport.AbsOrigin!.Y, teleport.AbsOrigin!.Z);
+                            this.BonusStartZoneAngles[bonus] = new QAngle(teleport.AbsRotation!.X, teleport.AbsRotation!.Y, teleport.AbsRotation!.Z);
                             this.Bonuses++; // Count bonus zones for the map to populate DB
                             foundPlayerSpawn = true;
                             break;
@@ -141,102 +182,219 @@ internal class Map
 
                     if (!foundPlayerSpawn)
                     {
-                        this.BonusStartZone[bonus - 1] = new Vector(trigger.AbsOrigin!.X, trigger.AbsOrigin!.Y, trigger.AbsOrigin!.Z);
+                        this.BonusStartZone[bonus] = new Vector(trigger.AbsOrigin!.X, trigger.AbsOrigin!.Y, trigger.AbsOrigin!.Z);
+                        this.Bonuses++;
                     }
                 }
 
                 else if (Regex.Match(trigger.Entity.Name, "^b([1-9][0-9]?|onus[1-9][0-9]?)_end$").Success) 
                 {
-                    this.BonusEndZone[Int32.Parse(Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value) - 1] = new Vector(trigger.AbsOrigin!.X, trigger.AbsOrigin!.Y, trigger.AbsOrigin!.Z);
+                    this.BonusEndZone[Int32.Parse(Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value)] = new Vector(trigger.AbsOrigin!.X, trigger.AbsOrigin!.Y, trigger.AbsOrigin!.Z);
                 }
             }
         }
-        if (this.Stages > 0) this.Stages++; // You did not count the stages right :(
+
+        if (this.Stages > 0) // Account for stage 1, not counted above
+            this.Stages += 1; 
         Console.WriteLine($"[CS2 Surf] Identifying start zone: {this.StartZone.X},{this.StartZone.Y},{this.StartZone.Z}\nIdentifying end zone: {this.EndZone.X},{this.EndZone.Y},{this.EndZone.Z}");
-
-        // Gather map information OR create entry
-        Task<MySqlDataReader> reader = DB.Query($"SELECT * FROM Maps WHERE name='{MySqlHelper.EscapeString(Name)}'");
-        MySqlDataReader mapData = reader.Result;
+        
         bool updateData = false;
-        if (mapData.HasRows && mapData.Read()) // In here we can check whether MapData in DB is the same as the newly extracted data, if not, update it (as hookzones may have changed on map updates)
+        var mapinfo = APICall.GET<API_MapInfo>($"/surftimer/mapinfo?mapname={Name}").Result;
+        if (mapinfo != null)
         {
-            this.ID = mapData.GetInt32("id");
-            this.Author = mapData.GetString("author") ?? "Unknown";
-            this.Tier = mapData.GetInt32("tier");
-            if (this.Stages != mapData.GetInt32("stages") || this.Bonuses != mapData.GetInt32("bonuses"))
+            this.ID = mapinfo.id;
+            this.Author = mapinfo.author;
+            this.Tier = mapinfo.tier;
+            if (this.Stages != mapinfo.stages || this.Bonuses != mapinfo.bonuses)
                 updateData = true;
-            // this.Stages = mapData.GetInt32("stages");    // this should now be populated accordingly when looping through hookzones for the map
-            // this.Bonuses = mapData.GetInt32("bonuses");  // this should now be populated accordingly when looping through hookzones for the map
-            this.Ranked = mapData.GetBoolean("ranked");
-            this.DateAdded = mapData.GetInt32("date_added");
-            this.LastPlayed = mapData.GetInt32("last_played");
-            updateData = true;
-            mapData.Close();
+            this.Ranked = mapinfo.ranked == 1 ? true : false;
+            this.DateAdded = (int)mapinfo.date_added!;
+            this.LastPlayed = (int)mapinfo.last_played!;
         }
-
         else
         {
-            mapData.Close();
-            Task<int> writer = DB.Write($"INSERT INTO Maps (name, author, tier, stages, ranked, date_added, last_played) VALUES ('{MySqlHelper.EscapeString(Name)}', 'Unknown', {this.Stages}, {this.Bonuses}, 0, {(int)DateTimeOffset.UtcNow.ToUnixTimeSeconds()}, {(int)DateTimeOffset.UtcNow.ToUnixTimeSeconds()})");
-            int writerRows = writer.Result;
-            if (writerRows != 1)
-                throw new Exception($"CS2 Surf ERROR >> OnRoundStart -> new Map() -> Failed to write new map to database, this shouldn't happen. Map: {Name}");
-            writer.Dispose();
-
-            Task<MySqlDataReader> postWriteReader = DB.Query($"SELECT * FROM Maps WHERE name='{MySqlHelper.EscapeString(Name)}'");
-            MySqlDataReader postWriteMapData = postWriteReader.Result;
-            if (postWriteMapData.HasRows && postWriteMapData.Read())
+            API_MapInfo inserted = new API_MapInfo
             {
-                this.ID = postWriteMapData.GetInt32("id");
-                this.Author = postWriteMapData.GetString("author");
-                this.Tier = postWriteMapData.GetInt32("tier");
-                // this.Stages = -1;    // this should now be populated accordingly when looping through hookzones for the map
-                // this.Bonuses = -1;   // this should now be populated accordingly when looping through hookzones for the map
-                this.Ranked = postWriteMapData.GetBoolean("ranked");
-                this.DateAdded = postWriteMapData.GetInt32("date_added");
-                this.LastPlayed = this.DateAdded; 
-            }
-            postWriteMapData.Close();
+                id = -1, // Shouldn't really use this at all at api side
+                name = Name,
+                author = "Unknown",
+                tier = this.Tier,
+                stages = this.Stages,
+                bonuses = this.Bonuses,
+                ranked = 0,
+            };
 
+            _ = APICall.POST($"/surftimer/insertmap", inserted).Result;
             return;
         }
 
-        // Update the map's last played data in the DB
-        // Update last_played data or update last_played, stages, and bonuses data
-        string query = $"UPDATE Maps SET last_played={(int)DateTimeOffset.UtcNow.ToUnixTimeSeconds()} WHERE id={this.ID}";
-        if (updateData) query = $"UPDATE Maps SET last_played={(int)DateTimeOffset.UtcNow.ToUnixTimeSeconds()}, stages={this.Stages}, bonuses={this.Bonuses} WHERE id={this.ID}";
-        #if DEBUG
-        Console.WriteLine($"CS2 Surf ERROR >> OnRoundStart -> update Map() -> Update MapData: {query}");
-        #endif
-        
-        Task<int> updater = DB.Write(query);
-        int lastPlayedUpdateRows = updater.Result;
-        if (lastPlayedUpdateRows != 1)
-            throw new Exception($"CS2 Surf ERROR >> OnRoundStart -> update Map() -> Failed to update map in database, this shouldnt happen. Map: {Name} | was it 'big' update? {updateData}");
-        updater.Dispose();
+        API_MapInfo updated = new API_MapInfo
+        {
+                id = this.ID,
+                name = Name,
+                author = "Unknown",
+                tier = this.Tier,
+                stages = this.Stages,
+                bonuses = this.Bonuses,
+                ranked = 0,
+                last_played = (int)DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+        };
+
+        if (updateData)
+        {
+            updated.stages = this.Stages;
+            updated.bonuses = this.Bonuses;
+        }
+
+        _ = APICall.PUT($"/surftimer/updateMap", updated).Result;
 
         // Initiates getting the World Records for the map
-        GetMapRecordAndTotals(DB); // To-do: Implement styles
+        GetMapRecordAndTotals(); // To-do: Implement styles
 
-        this.ReplayBots[0].Stat_MapTimeID = this.WR[0].ID; // Sets WrIndex to WR maptime_id
-        if(this.Stages > 0) // If stages map adds bot
-            this.ReplayBots = this.ReplayBots.Prepend(new ReplayPlayer()).ToList();
+        this.ReplayManager = new ReplayManager(this.ID, this.Stages > 0, this.Bonuses > 0);
 
-        if(this.Bonuses > 0) // If has bonuses adds bot
-            this.ReplayBots = this.ReplayBots.Prepend(new ReplayPlayer()).ToList();
+        // this.ReplayBots[0].Stat_MapTimeID = this.WR[0].ID; // Sets WrIndex to WR maptime_id
+        // this.ReplayBots[0].RecordRank = 1;
+        // this.ReplayBots[0].Type = 0;
+        // this.ReplayBots[0].Stage = 0;
+        
+        // if(this.Stages > 0) // If stages map adds bot
+        //     this.ReplayBots = this.ReplayBots.Prepend(new ReplayPlayer()).ToList();
+        //     this.ReplayBots[0].RecordRank = 1;
+        //     this.ReplayBots[0].Type = 2;
+        //     this.ReplayBots[0].Stage = 0;
+        //     // Add stage MapTimeID
+
+        // if(this.Bonuses > 0) // If has bonuses adds bot
+        //     this.ReplayBots = this.ReplayBots.Prepend(new ReplayPlayer()).ToList();
+        //     // int idx = this.Stages > 0 ? 1 : 0;
+        //     this.ReplayBots[0].RecordRank = 1;
+        //     this.ReplayBots[0].Type = 1;
+        //     this.ReplayBots[0].Stage = 0;
+    }
+
+
+    // Leaving this outside of the constructor for `Map` so we can call it to ONLY update the data when a new world record is set
+    internal async void GetMapRecordAndTotals(int style = 0 ) // To-do: Implement styles
+    {
+        var maptimes = await APICall.GET<API_MapTime[]>($"/surftimer/maptotals?map_id={this.ID}&style={style}"); // TODO: Implement styles
+        if (maptimes == null)
+            return;
+
+        foreach (API_MapTime mt in maptimes)
+        {
+            if (mt.type == 1)
+            {
+                this.BonusWR[mt.stage][style].ID = mt.id;
+                this.BonusWR[mt.stage][style].Type = mt.type;
+                this.BonusWR[mt.stage][style].Ticks = mt.run_time;
+                this.BonusWR[mt.stage][style].StartVelX = mt.start_vel_x;
+                this.BonusWR[mt.stage][style].StartVelY = mt.start_vel_y;
+                this.BonusWR[mt.stage][style].StartVelZ = mt.start_vel_z;
+                this.BonusWR[mt.stage][style].EndVelX = mt.end_vel_x;
+                this.BonusWR[mt.stage][style].EndVelY = mt.end_vel_y;
+                this.BonusWR[mt.stage][style].EndVelZ = mt.end_vel_z;
+                this.BonusWR[mt.stage][style].RunDate = (int)mt.run_date!;
+                this.BonusWR[mt.stage][style].Name = mt.name;
+
+                if (!this.BonusCompletions[mt.stage].ContainsKey(style))
+                {
+                    this.BonusCompletions[mt.stage][style] = 0;
+                }
+                else
+                {
+                    this.BonusCompletions[mt.stage][style]++;
+                }
+
+            }
+            else if (mt.type == 2)
+            {
+                this.StageWR[mt.stage][style].ID = mt.id;
+                this.StageWR[mt.stage][style].Type = mt.type;
+                this.StageWR[mt.stage][style].Ticks = mt.run_time;
+                this.StageWR[mt.stage][style].StartVelX = mt.start_vel_x;
+                this.StageWR[mt.stage][style].StartVelY = mt.start_vel_y;
+                this.StageWR[mt.stage][style].StartVelZ = mt.start_vel_z;
+                this.StageWR[mt.stage][style].EndVelX = mt.end_vel_x;
+                this.StageWR[mt.stage][style].EndVelY = mt.end_vel_y;
+                this.StageWR[mt.stage][style].EndVelZ = mt.end_vel_z;
+                this.StageWR[mt.stage][style].RunDate = (int)mt.run_date!;
+                this.StageWR[mt.stage][style].Name = mt.name;
+
+                if (!this.StageCompletions[mt.stage].ContainsKey(style))
+                {
+                    this.StageCompletions[mt.stage][style] = 0;
+                }
+                else
+                {
+                    this.StageCompletions[mt.stage][style]++;
+                }
+            }
+            else
+            {
+                this.WR[style].ID = mt.id;
+                this.WR[style].Type = mt.type;
+                this.WR[style].Ticks = mt.run_time;
+                this.WR[style].StartVelX = mt.start_vel_x;
+                this.WR[style].StartVelY = mt.start_vel_y;
+                this.WR[style].StartVelZ = mt.start_vel_z;
+                this.WR[style].EndVelX = mt.end_vel_x;
+                this.WR[style].EndVelY = mt.end_vel_y;
+                this.WR[style].EndVelZ = mt.end_vel_z;
+                this.WR[style].RunDate = (int)mt.run_date!;
+                this.WR[style].Name = mt.name;
+
+                this.ConnectedMapTimes.Add(mt.id);
+
+                if (!this.MapCompletions.ContainsKey(style))
+                {
+                    this.MapCompletions[style] = 0;
+                }
+                else
+                {
+                    this.MapCompletions[style]++;
+                }
+            }
+        }
+
+        var checkpoints = await APICall.GET<API_Checkpoint[]>($"/surftimer/mapcheckpointsdata?maptime_id={this.WR[style].ID}");
+        if (checkpoints == null || checkpoints.Length == 0)
+            return;
+
+        foreach (API_Checkpoint checkpoint in checkpoints)
+        {
+            Checkpoint cp = new Checkpoint
+            (
+                checkpoint.cp,
+                checkpoint.ticks,
+                checkpoint.start_vel_x,
+                checkpoint.start_vel_y,
+                checkpoint.start_vel_z,
+                checkpoint.end_vel_x,
+                checkpoint.end_vel_y,
+                checkpoint.end_vel_z,
+                checkpoint.end_touch,
+                checkpoint.attempts
+            );
+            cp.ID = checkpoint.cp;
+
+            this.WR[style].Checkpoint[cp.CP] = cp;
+        }
+
+        return;
     }
 
     public void KickReplayBot(int index)
     {
-        if (!this.ReplayBots[index].IsPlayable)
+        if (!this.ReplayManager.CustomReplays[index].IsPlayable)
             return;
 
-        int? id_to_kick = this.ReplayBots[index].Controller!.UserId;
+        int? id_to_kick = this.ReplayManager.CustomReplays[index].Controller!.UserId;
         if(id_to_kick == null)
             return;
 
-        this.ReplayBots.RemoveAt(index);
-        Server.ExecuteCommand($"kickid {id_to_kick}; bot_quota {this.ReplayBots.Count}");
+        this.ReplayManager.CustomReplays.RemoveAt(index);
+        Server.ExecuteCommand($"kickid {id_to_kick}; bot_quota {this.ReplayManager.CustomReplays.Count}");
     }
 
     public bool IsInZone(Vector zoneOrigin, float zoneCollisionRadius, Vector spawnOrigin)
@@ -247,83 +405,5 @@ internal class Map
             return true;
         else
             return false;
-    }
-
-    // Leaving this outside of the constructor for `Map` so we can call it to ONLY update the data when a new world record is set
-    internal void GetMapRecordAndTotals(TimerDatabase DB, int style = 0 ) // To-do: Implement styles
-    {
-        // Get map world records
-        Task<MySqlDataReader> reader = DB.Query($@"
-            SELECT MapTimes.*, Player.name
-            FROM MapTimes
-            JOIN Player ON MapTimes.player_id = Player.id
-            WHERE MapTimes.map_id = {this.ID} AND MapTimes.style = {style}
-            ORDER BY MapTimes.run_time ASC;
-        ");
-        MySqlDataReader mapWrData = reader.Result;
-        int totalRows = 0;
-        
-        if (mapWrData.HasRows)
-        { 
-            // To-do: Implement bonuses WR
-            // To-do: Implement stages WR
-            this.ConnectedMapTimes.Clear();
-            while (mapWrData.Read())
-            {
-                if (totalRows == 0) // We are sorting by `run_time ASC` so the first row is always the fastest run for the map and style combo :)
-                {    
-                    this.WR[style].ID = mapWrData.GetInt32("id"); // WR ID for the Map and Style combo
-                    this.WR[style].Ticks = mapWrData.GetInt32("run_time"); // Fastest run time (WR) for the Map and Style combo
-                    this.WR[style].StartVelX = mapWrData.GetFloat("start_vel_x"); // Fastest run start velocity X for the Map and Style combo
-                    this.WR[style].StartVelY = mapWrData.GetFloat("start_vel_y"); // Fastest run start velocity Y for the Map and Style combo
-                    this.WR[style].StartVelZ = mapWrData.GetFloat("start_vel_z"); // Fastest run start velocity Z for the Map and Style combo
-                    this.WR[style].EndVelX = mapWrData.GetFloat("end_vel_x"); // Fastest run end velocity X for the Map and Style combo
-                    this.WR[style].EndVelY = mapWrData.GetFloat("end_vel_y"); // Fastest run end velocity Y for the Map and Style combo
-                    this.WR[style].EndVelZ = mapWrData.GetFloat("end_vel_z"); // Fastest run end velocity Z for the Map and Style combo
-                    this.WR[style].RunDate = mapWrData.GetInt32("run_date"); // Fastest run date for the Map and Style combo
-                    this.WR[style].Name = mapWrData.GetString("name"); // Fastest run player name for the Map and Style combo
-                }
-                this.ConnectedMapTimes.Add(mapWrData.GetInt32("id"));
-                totalRows++;
-            }
-        }
-        mapWrData.Close();
-        this.TotalCompletions = totalRows; // Total completions for the map and style - this should maybe be added to PersonalBest class
-
-        // Get map world record checkpoints
-        if (totalRows != 0)
-        {
-            Task<MySqlDataReader> cpReader = DB.Query($"SELECT * FROM `Checkpoints` WHERE `maptime_id` = {this.WR[style].ID};");
-            MySqlDataReader cpWrData = cpReader.Result;
-            while (cpWrData.Read())
-            {
-                #if DEBUG
-                Console.WriteLine($"cp {cpWrData.GetInt32("cp")} ");
-                Console.WriteLine($"run_time {cpWrData.GetFloat("run_time")} ");
-                Console.WriteLine($"sVelX {cpWrData.GetFloat("start_vel_x")} ");
-                Console.WriteLine($"sVelY {cpWrData.GetFloat("start_vel_y")} ");
-                #endif
-
-                Checkpoint cp = new(cpWrData.GetInt32("cp"),
-                                    cpWrData.GetInt32("run_time"),   // To-do: what type of value we use here? DB uses DECIMAL but `.Tick` is int???
-                                    cpWrData.GetFloat("start_vel_x"),
-                                    cpWrData.GetFloat("start_vel_y"),
-                                    cpWrData.GetFloat("start_vel_z"),
-                                    cpWrData.GetFloat("end_vel_x"),
-                                    cpWrData.GetFloat("end_vel_y"),
-                                    cpWrData.GetFloat("end_vel_z"),
-                                    cpWrData.GetFloat("end_touch"),
-                                    cpWrData.GetInt32("attempts"));
-                cp.ID = cpWrData.GetInt32("cp");
-                // To-do: cp.ID = calculate Rank # from DB
-
-                this.WR[style].Checkpoint[cp.CP] = cp;
-
-                #if DEBUG
-                Console.WriteLine($"======= CS2 Surf DEBUG >> internal void GetMapRecordAndTotals : Map -> Loaded WR CP {cp.CP} with RunTime {cp.Ticks} for MapTimeID {WR[0].ID} (MapId = {this.ID}).");
-                #endif
-            }
-            cpWrData.Close();
-        }
     }
 }

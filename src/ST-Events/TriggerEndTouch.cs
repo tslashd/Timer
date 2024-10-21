@@ -6,8 +6,11 @@ namespace SurfTimer;
 
 public partial class SurfTimer
 {
-    // Trigger end touch handler - CBaseTrigger_EndTouchFunc
-    // internal HookResult OnTriggerEndTouch(DynamicHook handler)
+    /// <summary>
+    /// Handler for trigger end touch hook - CBaseTrigger_EndTouchFunc
+    /// </summary>
+    /// <returns>CounterStrikeSharp.API.Core.HookResult</returns>
+    /// <exception cref="Exception"></exception>
     internal HookResult OnTriggerEndTouch(CEntityIOOutput output, string name, CEntityInstance activator, CEntityInstance caller, CVariant value, float delay)
     {
         // CBaseTrigger trigger = handler.GetParam<CBaseTrigger>(0);
@@ -50,10 +53,10 @@ public partial class SurfTimer
                     }
 
                     // MAP START ZONE
-                    if (!player.Timer.IsStageMode)
+                    if (!player.Timer.IsStageMode && !player.Timer.IsBonusMode)
                     {
                         player.Timer.Start();
-                        player.ReplayRecorder.CurrentSituation = ReplayFrameSituation.START_RUN;
+                        player.ReplayRecorder.CurrentSituation = ReplayFrameSituation.START_ZONE_EXIT;
                     }
 
                     /* Revisit
@@ -91,6 +94,14 @@ public partial class SurfTimer
                     // This will populate the End velocities for the given Checkpoint zone (Stage = Checkpoint when in a Map Run)
                     if (player.Timer.Checkpoint != 0 && player.Timer.Checkpoint <= player.Stats.ThisRun.Checkpoint.Count)
                     {
+                        int stage_num = Int32.Parse(Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value);
+
+                        if(player.Timer.IsRunning && player.ReplayRecorder.IsRecording)
+                        {
+                            if (stage_num > 0)
+                                player.ReplayRecorder.CurrentSituation = ReplayFrameSituation.STAGE_ZONE_EXIT;
+                        }
+
                         var currentCheckpoint = player.Stats.ThisRun.Checkpoint[player.Timer.Checkpoint];
                         #if DEBUG
                         Console.WriteLine($"currentCheckpoint.EndVelX {currentCheckpoint.EndVelX} - velocity_x {velocity_x}");
@@ -103,7 +114,7 @@ public partial class SurfTimer
                         currentCheckpoint.EndVelX = velocity_x;
                         currentCheckpoint.EndVelY = velocity_y;
                         currentCheckpoint.EndVelZ = velocity_z;
-                        currentCheckpoint.EndTouch = player.Timer.Ticks; // To-do: what type of value we store in DB ?
+                        currentCheckpoint.EndTouch = player.Timer.Ticks;
                         currentCheckpoint.Attempts += 1;
                         // Assign the updated currentCheckpoint back to the list as `currentCheckpoint` is supposedly a copy of the original object
                         player.Stats.ThisRun.Checkpoint[player.Timer.Checkpoint] = currentCheckpoint;
@@ -135,11 +146,16 @@ public partial class SurfTimer
                         Console.WriteLine($"currentCheckpoint.EndVelZ {currentCheckpoint.EndVelZ} - velocity_z {velocity_z}");
                         #endif
 
+                        if(player.Timer.IsRunning && player.ReplayRecorder.IsRecording)
+                        {
+                            player.ReplayRecorder.CurrentSituation = ReplayFrameSituation.CHECKPOINT_ZONE_EXIT;
+                        }
+
                         // Update the values
                         currentCheckpoint.EndVelX = velocity_x;
                         currentCheckpoint.EndVelY = velocity_y;
                         currentCheckpoint.EndVelZ = velocity_z;
-                        currentCheckpoint.EndTouch = player.Timer.Ticks; // To-do: what type of value we store in DB ?
+                        currentCheckpoint.EndTouch = player.Timer.Ticks;
                         currentCheckpoint.Attempts += 1;
                         // Assign the updated currentCheckpoint back to the list as `currentCheckpoint` is supposedly a copy of the original object
                         player.Stats.ThisRun.Checkpoint[player.Timer.Checkpoint] = currentCheckpoint;
@@ -151,6 +167,33 @@ public partial class SurfTimer
                     {
                         // Handle the case where the index is out of bounds
                     }
+                }
+            
+                // Bonus start zones -- hook into (b)onus#_start
+                else if (Regex.Match(trigger.Entity.Name, "^b([1-9][0-9]?|onus[1-9][0-9]?)_start$").Success)
+                {
+                    #if DEBUG
+                    player.Controller.PrintToChat($"CS2 Surf DEBUG >> CBaseTrigger_{ChatColors.LightRed}EndTouchFunc{ChatColors.Default} -> {ChatColors.Yellow}Bonus {Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value} Start Zone");
+                    #endif
+
+                    if(player.ReplayRecorder.IsRecording) 
+                    {
+                        // Saveing 2 seconds before leaving the start zone
+                        player.ReplayRecorder.Frames.RemoveRange(0, Math.Max(0, player.ReplayRecorder.Frames.Count - (64*2))); // Todo make a plugin convar for the time saved before start of run 
+                    }
+
+                    // BONUS START ZONE
+                    if (!player.Timer.IsStageMode && player.Timer.IsBonusMode)
+                    {
+                        player.Timer.Start();
+                        player.ReplayRecorder.CurrentSituation = ReplayFrameSituation.START_ZONE_EXIT;
+                    }
+
+                    // Prespeed display
+                    player.Controller.PrintToCenter($"Prespeed: {velocity.ToString("0")} u/s");
+                    player.Stats.ThisRun.StartVelX = velocity_x; // Start pre speed for the run
+                    player.Stats.ThisRun.StartVelY = velocity_y; // Start pre speed for the run
+                    player.Stats.ThisRun.StartVelZ = velocity_z; // Start pre speed for the run
                 }
             }
 

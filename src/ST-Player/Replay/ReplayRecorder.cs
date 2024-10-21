@@ -46,12 +46,10 @@ internal class ReplayRecorder
 
         var frame = new ReplayFrame 
         {
-            Pos = new Vector(player_pos.X, player_pos.Y, player_pos.Z),
-            Ang = new QAngle(player_angle.X, player_angle.Y, player_angle.Z),
-            Situation = (uint)this.CurrentSituation,
-            Button = player_button,
+            pos = [player_pos.X, player_pos.Y, player_pos.Z],
+            ang = [player_angle.X, player_angle.Y, player_angle.Z],
+            Situation = (byte)this.CurrentSituation,
             Flags = player_flags,
-            MoveType = player_move_type,
         };
 
         this.Frames.Add(frame);
@@ -62,8 +60,85 @@ internal class ReplayRecorder
 
     public string SerializeReplay()
     {
-        JsonSerializerOptions options = new JsonSerializerOptions {WriteIndented = false, Converters = { new VectorConverter(), new QAngleConverter() }};
-        string replay_frames = JsonSerializer.Serialize(Frames, options);
+        // JsonSerializerOptions options = new JsonSerializerOptions {WriteIndented = false, Converters = { new VectorConverter(), new QAngleConverter() }};
+        // string replay_frames = JsonSerializer.Serialize(Frames, options);
+        string replay_frames = JsonSerializer.Serialize(Frames);
         return Compressor.Compress(replay_frames);
     }
+
+    public string SerializeReplayPortion(int start_idx, int end_idx)
+    {
+        // JsonSerializerOptions options = new JsonSerializerOptions {WriteIndented = false, Converters = { new VectorConverter(), new QAngleConverter() }};
+        // string replay_frames = JsonSerializer.Serialize(Frames.GetRange(start_idx, end_idx), options);
+        string replay_frames = JsonSerializer.Serialize(Frames.GetRange(start_idx, end_idx));
+        return Compressor.Compress(replay_frames);
+    }
+
+    public void SetLastTickSituation(ReplayFrameSituation situation)
+    {
+        if (this.Frames.Count == 0)
+            return;
+        this.Frames[this.Frames.Count-2].Situation = (byte)situation;
+    }
+
+    public int LastEnterTick(int start_idx=0)
+    {
+        if (start_idx == 0)
+            start_idx = this.Frames.Count - 1;
+        for (int i = start_idx; i > 0; i--)
+        {
+            if (
+                this.Frames[i].Situation == (byte)ReplayFrameSituation.START_ZONE_ENTER ||
+                this.Frames[i].Situation == (byte)ReplayFrameSituation.STAGE_ZONE_ENTER ||
+                this.Frames[i].Situation == (byte)ReplayFrameSituation.CHECKPOINT_ZONE_ENTER ||
+                this.Frames[i].Situation == (byte)ReplayFrameSituation.END_ZONE_ENTER
+            )
+                return i;
+        }
+        return 0;
+    }
+
+    public int LastExitTick(int start_idx=0)
+    {
+        if (start_idx == 0)
+            start_idx = this.Frames.Count - 1;
+        for (int i = start_idx; i > 0; i--)
+        {
+            if (
+                this.Frames[i].Situation == (byte)ReplayFrameSituation.START_ZONE_EXIT ||
+                this.Frames[i].Situation == (byte)ReplayFrameSituation.STAGE_ZONE_EXIT ||
+                this.Frames[i].Situation == (byte)ReplayFrameSituation.CHECKPOINT_ZONE_EXIT ||
+                this.Frames[i].Situation == (byte)ReplayFrameSituation.END_ZONE_EXIT
+            )
+                return i;
+        }
+        return 0;
+    }
+
+    // public int CalculateTicksSinceLastEnterStage()
+    // {
+    //     int start_stage_mark = -1;
+    //     for (int i = this.Frames.Count-1; i > 0; i--)
+    //     {
+    //         if (start_stage_mark != -1 && start_stage_mark - i > 64*2)
+    //             return i;
+
+    //         if (this.Frames[i].Situation == (byte)ReplayFrameSituation.START_STAGE)
+    //             start_stage_mark = i;
+                
+    //         if (this.Frames[i].Situation == (byte)ReplayFrameSituation.ENTER_STAGE)
+    //             return i; // Fact check me
+    //     }
+    //     return 0;
+    // }
+
+    // public int CalculateTicksSinceLastStartStage()
+    // {
+    //     for (int i = this.Frames.Count-1; i > 0; i--)
+    //     {
+    //         if (this.Frames[i].Situation == (byte)ReplayFrameSituation.START_STAGE)
+    //             return i;
+    //     }
+    //     return 0;
+    // }
 }

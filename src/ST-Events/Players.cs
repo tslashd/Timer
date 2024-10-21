@@ -13,33 +13,67 @@ public partial class SurfTimer
     public HookResult OnPlayerSpawn(EventPlayerSpawn @event, GameEventInfo info)
     {
         var controller = @event.Userid;
-        if(!controller.IsValid || !controller.IsBot)
+        if(!controller.IsValid || !controller.IsBot || CurrentMap.ReplayManager.IsControllerConnectedToReplayPlayer(controller))
             return HookResult.Continue;
 
-        for (int i = 0; i < CurrentMap.ReplayBots.Count; i++)
+        if (!CurrentMap.ReplayManager!.MapWR.IsPlayable)
         {
-            if(CurrentMap.ReplayBots[i].IsPlayable)
-                continue;
+            CurrentMap.ReplayManager.MapWR.SetController(controller, -1);
+            CurrentMap.ReplayManager.MapWR.LoadReplayData();
 
-            int repeats = -1;
-            if(CurrentMap.ReplayBots[i].Stat_Prefix == "PB")
-                repeats = 3;
-            
-            CurrentMap.ReplayBots[i].SetController(controller, repeats);
-            Server.PrintToChatAll($"{PluginPrefix} {ChatColors.Lime}Loading replay data...");
-            AddTimer(2f, () => {
-                if(!CurrentMap.ReplayBots[i].IsPlayable)
-                    return;
-
-                CurrentMap.ReplayBots[i].Controller!.RemoveWeapons();
-                
-                CurrentMap.ReplayBots[i].LoadReplayData(DB!);
-
-                CurrentMap.ReplayBots[i].Start();
+            AddTimer(1.5f, () => {
+                CurrentMap.ReplayManager.MapWR.Controller!.RemoveWeapons();
+                CurrentMap.ReplayManager.MapWR.Start();
+                CurrentMap.ReplayManager.MapWR.FormatBotName();
             });
-            
+
             return HookResult.Continue;
         }
+
+        if (CurrentMap.ReplayManager.StageWR != null && !CurrentMap.ReplayManager.StageWR.IsPlayable)
+        {
+            CurrentMap.ReplayManager.StageWR.SetController(controller, 3);
+            CurrentMap.ReplayManager.StageWR.LoadReplayData();
+
+            AddTimer(1.5f, () => {
+                CurrentMap.ReplayManager.StageWR.Controller!.RemoveWeapons();
+                CurrentMap.ReplayManager.StageWR.Start();
+                CurrentMap.ReplayManager.StageWR.FormatBotName();
+            });
+
+            return HookResult.Continue;
+        }
+
+        if (CurrentMap.ReplayManager.BonusWR != null && !CurrentMap.ReplayManager.BonusWR.IsPlayable)
+        {
+            CurrentMap.ReplayManager.BonusWR.SetController(controller, 3);
+            CurrentMap.ReplayManager.BonusWR.LoadReplayData();
+
+            AddTimer(1.5f, () => {
+                CurrentMap.ReplayManager.BonusWR.Controller!.RemoveWeapons();
+                CurrentMap.ReplayManager.BonusWR.Start();
+                CurrentMap.ReplayManager.BonusWR.FormatBotName();
+            });
+
+            return HookResult.Continue;
+        }
+
+        CurrentMap.ReplayManager.CustomReplays.ForEach(replay =>
+        {
+            if (!replay.IsPlayable)
+            {
+                replay.SetController(controller, 3);
+                replay.LoadReplayData();
+
+                AddTimer(1.5f, () => {
+                    replay.Controller!.RemoveWeapons();
+                    replay.Start();
+                    replay.FormatBotName();
+                });
+
+                return;
+            }
+        });
 
         return HookResult.Continue;
     }
@@ -167,9 +201,19 @@ public partial class SurfTimer
     {
         var player = @event.Userid;
 
-        for (int i = 0; i < CurrentMap.ReplayBots.Count; i++)
-            if (CurrentMap.ReplayBots[i].IsPlayable && CurrentMap.ReplayBots[i].Controller!.Equals(player) && CurrentMap.ReplayBots[i].Stat_MapTimeID != -1)
-                CurrentMap.ReplayBots[i].Reset();
+        if (CurrentMap.ReplayManager.MapWR.Controller != null && CurrentMap.ReplayManager.MapWR.Controller.Equals(player))
+            CurrentMap.ReplayManager.MapWR.Reset();
+
+        if (CurrentMap.ReplayManager.StageWR != null && CurrentMap.ReplayManager.StageWR.Controller != null && CurrentMap.ReplayManager.StageWR.Controller.Equals(player))
+            CurrentMap.ReplayManager.StageWR.Reset();
+
+        if (CurrentMap.ReplayManager.BonusWR != null && CurrentMap.ReplayManager.BonusWR.Controller != null && CurrentMap.ReplayManager.BonusWR.Controller.Equals(player))
+            CurrentMap.ReplayManager.BonusWR!.Reset();
+        
+        for (int i = 0; i < CurrentMap.ReplayManager.CustomReplays.Count; i++)
+            if (CurrentMap.ReplayManager.CustomReplays[i].Controller != null && CurrentMap.ReplayManager.CustomReplays[i].Controller!.Equals(player))
+                CurrentMap.ReplayManager.CustomReplays[i].Reset();
+
 
         if (player.IsBot || !player.IsValid)
         {

@@ -2,6 +2,7 @@
 *.vscode/*
 !.vscode/tasks.json
 *.idea
+_old_src/*
 src/bin/Debug/*
 src/bin/Release/*
 src/obj/*

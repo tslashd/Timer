@@ -7,8 +7,11 @@ namespace SurfTimer;
 
 public partial class SurfTimer
 {
-    // Trigger start touch handler - CBaseTrigger_StartTouchFunc
-    // internal HookResult OnTriggerStartTouch(DynamicHook handler)
+    /// <summary>
+    /// Handler for trigger start touch hook - CBaseTrigger_StartTouchFunc
+    /// </summary>
+    /// <returns>CounterStrikeSharp.API.Core.HookResult</returns>
+    /// <exception cref="Exception"></exception>
     internal HookResult OnTriggerStartTouch(CEntityIOOutput output, string name, CEntityInstance activator, CEntityInstance caller, CVariant value, float delay)
     {
         // CBaseTrigger trigger = handler.GetParam<CBaseTrigger>(0);
@@ -53,7 +56,7 @@ public partial class SurfTimer
                     if (player.Timer.IsRunning)
                     {
                         player.Timer.Stop();
-                        player.ReplayRecorder.CurrentSituation = ReplayFrameSituation.END_RUN;
+                        player.ReplayRecorder.CurrentSituation = ReplayFrameSituation.END_ZONE_ENTER;
 
                         player.Stats.ThisRun.Ticks = player.Timer.Ticks; // End time for the run
                         player.Stats.ThisRun.EndVelX = velocity_x; // End pre speed for the run
@@ -96,24 +99,98 @@ public partial class SurfTimer
                         ");
                         #endif
 
+
                         // Add entry in DB for the run
-                        if(!player.Timer.IsPracticeMode) {
-                            AddTimer(1.5f, async () => {
-                                player.Stats.ThisRun.SaveMapTime(player, DB); // Save the MapTime PB data
-                                player.Stats.LoadMapTimesData(player, DB); // Load the MapTime PB data again (will refresh the MapTime ID for the Checkpoints query)
-                                await player.Stats.ThisRun.SaveCurrentRunCheckpoints(player, DB); // Save this run's checkpoints
-                                player.Stats.LoadCheckpointsData(DB); // Reload checkpoints for the run - we should really have this in `SaveMapTime` as well but we don't re-load PB data inside there so we need to do it here
-                                CurrentMap.GetMapRecordAndTotals(DB); // Reload the Map record and totals for the HUD
+                        if (!player.Timer.IsPracticeMode) {
+                            API_CurrentRun? last_stage_time = null;
+                            if (CurrentMap.Stages > 0)
+                            {
+                                int last_exit_tick = player.ReplayRecorder.LastExitTick();
+                                int last_enter_tick = player.ReplayRecorder.LastEnterTick();
+
+                                int stage_run_time = player.ReplayRecorder.Frames.Count - 1 - last_exit_tick; // Would like some check on this
+                                int time_since_last_enter = player.ReplayRecorder.Frames.Count - 1 - last_enter_tick;
+
+                                int tt = -1;
+                                if (last_exit_tick - last_enter_tick > 2*64)
+                                    tt = last_exit_tick - 2*64;
+                                else
+                                    tt = last_enter_tick;
+
+                                last_stage_time = new API_CurrentRun
+                                {
+                                        player_id = player.Profile.ID,
+                                        map_id = player.CurrMap.ID,
+                                        style = style,
+                                        type = 2,
+                                        stage = CurrentMap.Stages,
+                                        run_time = stage_run_time,
+                                        run_date = (int)DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                                        replay_frames = player.ReplayRecorder.SerializeReplayPortion(tt, time_since_last_enter)
+                                };
+                            }
+                            AddTimer(1.5f, () => {
+                                List<API_Checkpoint> checkpoints = new List<API_Checkpoint>();
+                                foreach (var cp in player.Stats.ThisRun.Checkpoint)
+                                {
+                                    checkpoints.Add(new API_Checkpoint
+                                    {
+                                        cp = cp.Key,
+                                        ticks = cp.Value.Ticks,
+                                        start_vel_x = cp.Value.StartVelX,
+                                        start_vel_y = cp.Value.StartVelY,
+                                        start_vel_z = cp.Value.StartVelZ,
+                                        end_vel_x = cp.Value.EndVelX,
+                                        end_vel_y = cp.Value.EndVelY,
+                                        end_vel_z = cp.Value.EndVelZ,
+                                        end_touch = 0, // ?????
+                                        attempts = cp.Value.Attempts
+                                    });
+                                }
+
+                                API_CurrentRun map_time = new API_CurrentRun
+                                {
+                                    player_id = player.Profile.ID,
+                                    map_id = player.CurrMap.ID,
+                                    style = style,
+                                    type = 0,
+                                    stage = 0,
+                                    run_time = player.Stats.ThisRun.Ticks,
+                                    run_date = (int)DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                                    checkpoints = checkpoints,
+                                    replay_frames = player.ReplayRecorder.SerializeReplay()
+                                };                                    
+
+                                Task.Run(async () => {
+                                    System.Console.WriteLine("CS2 Surf DEBUG >> OnTriggerStartTouch (Map end zone) -> Saved map time");
+                                    await APICall.POST("/surftimer/savemaptime", map_time);
+
+                                    if (last_stage_time != null)
+                                    {
+                                        await APICall.POST("/surftimer/savestagetime", last_stage_time);
+                                        System.Console.WriteLine("CS2 Surf DEBUG >> OnTriggerStartTouch (Map end zone) -> Saved last stage time");
+                                        player.Stats.LoadStageTime(player);
+                                    }
+
+                                    player.Stats.LoadMapTime(player);
+                                    CurrentMap.GetMapRecordAndTotals(); // Reload the Map record and totals for the HUD
+                                });
                             });
 
                             // This section checks if the PB is better than WR
                             if(player.Timer.Ticks < CurrentMap.WR[player.Timer.Style].Ticks || CurrentMap.WR[player.Timer.Style].ID == -1)
                             {
-                                int WrIndex = CurrentMap.ReplayBots.Count-1; // As the ReplaysBot is set, WR Index will always be at the end of the List
                                 AddTimer(2f, () => {
-                                    CurrentMap.ReplayBots[WrIndex].Stat_MapTimeID = CurrentMap.WR[player.Timer.Style].ID;
-                                    CurrentMap.ReplayBots[WrIndex].LoadReplayData(DB!);
-                                    CurrentMap.ReplayBots[WrIndex].ResetReplay();
+                                    System.Console.WriteLine("CS2 Surf DEBUG >> OnTriggerStartTouch (Map end zone) -> WR PB");
+                                    CurrentMap.ReplayManager.MapWR.LoadReplayData();
+
+                                    AddTimer(1.5f, () => {
+                                        CurrentMap.ReplayManager.MapWR.FormatBotName();
+                                    });
+
+                                    //CurrentMap.ReplayManager.MapWR.FormatBotName();
+                                    // CurrentMap.ReplayManager.MapWR.ResetReplay();
+                                    // player.Controller.PrintToChat(CurrentMap.ReplayManager.MapWR.Controller!.PlayerName);
                                 });
                             }
                         }
@@ -130,6 +207,7 @@ public partial class SurfTimer
                         trigger.Entity.Name.Contains("stage1_start"))
                 {
                     player.ReplayRecorder.Start(); // Start replay recording
+                    player.ReplayRecorder.CurrentSituation = ReplayFrameSituation.START_ZONE_ENTER;
 
                     player.Timer.Reset();
                     player.Stats.ThisRun.Checkpoint.Clear(); // I have the suspicion that the `Timer.Reset()` does not properly reset this object :thonk:
@@ -144,7 +222,16 @@ public partial class SurfTimer
                 // Stage start zones -- hook into (s)tage#_start
                 else if (Regex.Match(trigger.Entity.Name, "^s([1-9][0-9]?|tage[1-9][0-9]?)_start$").Success)
                 {
-                    int stage = Int32.Parse(Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value) - 1;
+                    player.ReplayRecorder.CurrentSituation = ReplayFrameSituation.STAGE_ZONE_ENTER;
+                    // player.ReplayRecorder.Frames[player.ReplayRecorder.Frames.Count-2].Situation = (byte)ReplayFrameSituation.START_STAGE;
+                    System.Console.WriteLine($"CS2 Surf DEBUG >> OnTriggerStartTouch -> Current Frame: {player.ReplayRecorder.Frames.Count}");
+
+                    int stage = Int32.Parse(Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value);
+
+                    bool failed_stage = false;
+                    if(player.Timer.Stage == stage)
+                        failed_stage = true;
+
                     player.Timer.Stage = stage;
 
                     #if DEBUG
@@ -156,10 +243,66 @@ public partial class SurfTimer
                     // This should patch up re-triggering *player.Stats.ThisRun.Checkpoint.Count < stage*
                     if (player.Timer.IsRunning && !player.Timer.IsStageMode && player.Stats.ThisRun.Checkpoint.Count < stage)
                     {
-                        player.Timer.Checkpoint = stage; // Stage = Checkpoint when in a run on a Staged map
+                        if (stage > 1 && !failed_stage && !player.Timer.IsPracticeMode)
+                        {
+                            // This is a trick to record the time before the player exits the start zone
+                            int last_exit_tick = player.ReplayRecorder.LastExitTick();
+                            int last_enter_tick = player.ReplayRecorder.LastEnterTick();
+
+                            player.Controller.PrintToChat($"CS2 Surf DEBUG >> OnTriggerStartTouch -> Last Exit Tick: {last_exit_tick} | Current Frame: {player.ReplayRecorder.Frames.Count}");
+
+                            int stage_run_time = player.ReplayRecorder.Frames.Count - 1 - last_exit_tick; // Would like some check on this
+                            int time_since_last_enter = player.ReplayRecorder.Frames.Count - 1 - last_enter_tick;
+
+                            int tt = -1;
+                            if (last_exit_tick - last_enter_tick > 2*64)
+                                tt = last_exit_tick - 2*64;
+                            else
+                                tt = last_enter_tick;
+
+                            AddTimer(1.5f, () => {
+                                API_CurrentRun stage_time = new API_CurrentRun
+                                {
+                                    player_id = player.Profile.ID,
+                                    map_id = player.CurrMap.ID,
+                                    style = style,
+                                    type = 2,
+                                    stage = stage - 1,
+                                    run_time = stage_run_time,
+                                    run_date = (int)DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                                    replay_frames = player.ReplayRecorder.SerializeReplayPortion(tt, time_since_last_enter)
+                                };
+
+                                Task.Run(async () => {
+                                    await APICall.POST("/surftimer/savestagetime", stage_time);
+                                    player.Stats.LoadStageTime(player);
+                                    CurrentMap.GetMapRecordAndTotals(); // Reload the Map record and totals for the HUD
+                                });
+
+                            });
+
+                            if(player.Timer.Ticks < CurrentMap.StageWR[stage - 1][player.Timer.Style].Ticks || CurrentMap.StageWR[stage - 1][player.Timer.Style].ID == -1)
+                            {
+                                AddTimer(2f, () => {
+                                    CurrentMap.ReplayManager.StageWR!.Stage = stage - 1;
+                                    CurrentMap.ReplayManager.StageWR.LoadReplayData(repeat_count: 3);
+
+                                    AddTimer(1.5f, () => {
+                                        CurrentMap.ReplayManager.StageWR.FormatBotName();
+                                    });
+
+                                    //CurrentMap.ReplayManager.StageWR.FormatBotName();
+                                    // CurrentMap.ReplayManager.StageWR.ResetReplay();
+                                    // CurrentMap.ReplayManager.StageWR.RepeatCount = 3;
+                                });
+                            }
+                        }
+
+
+                        player.Timer.Checkpoint = stage - 1; // Stage = Checkpoint when in a run on a Staged map
 
                         #if DEBUG
-                        Console.WriteLine($"============== Initial entity value: {Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value} | Assigned to `stage`: {Int32.Parse(Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value) - 1}");
+                        Console.WriteLine($"============== Initial entity value: {Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value} | Assigned to `stage`: {Int32.Parse(Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value)}");
                         Console.WriteLine($"CS2 Surf DEBUG >> CBaseTrigger_StartTouchFunc (Stage start zones) -> player.Stats.PB[{style}].Checkpoint.Count = {player.Stats.PB[style].Checkpoint.Count}");
                         #endif
 
@@ -167,7 +310,7 @@ public partial class SurfTimer
                         player.HUD.DisplayCheckpointMessages(PluginPrefix);
 
                         // store the checkpoint in the player's current run checkpoints used for Checkpoint functionality
-                        Checkpoint cp2 = new Checkpoint(stage,
+                        Checkpoint cp2 = new Checkpoint(player.Timer.Checkpoint,
                                                         player.Timer.Ticks,
                                                         velocity_x,
                                                         velocity_y,
@@ -177,14 +320,13 @@ public partial class SurfTimer
                                                         -1.0f,
                                                         -1.0f,
                                                         0);
-                        player.Stats.ThisRun.Checkpoint[stage] = cp2;
+                        player.Stats.ThisRun.Checkpoint[player.Timer.Checkpoint] = cp2;
                     }
 
                     #if DEBUG
                     player.Controller.PrintToChat($"CS2 Surf DEBUG >> CBaseTrigger_{ChatColors.Lime}StartTouchFunc{ChatColors.Default} -> {ChatColors.Yellow}Stage {Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value} Start Zone");
                     #endif
                 }
-
                 // Map checkpoint zones -- hook into map_(c)heck(p)oint#
                 else if (Regex.Match(trigger.Entity.Name, "^map_c(p[1-9][0-9]?|heckpoint[1-9][0-9]?)$").Success)
                 {
@@ -195,9 +337,13 @@ public partial class SurfTimer
                     if (player.Timer.IsRunning && !player.Timer.IsStageMode && player.Stats.ThisRun.Checkpoint.Count < checkpoint)
                     {
                         #if DEBUG
-                        Console.WriteLine($"============== Initial entity value: {Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value} | Assigned to `checkpoint`: {Int32.Parse(Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value) - 1}");
+                        Console.WriteLine($"============== Initial entity value: {Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value} | Assigned to `checkpoint`: {Int32.Parse(Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value)}");
                         Console.WriteLine($"CS2 Surf DEBUG >> CBaseTrigger_StartTouchFunc (Checkpoint zones) -> player.Stats.PB[{style}].Checkpoint.Count = {player.Stats.PB[style].Checkpoint.Count}");
                         #endif
+
+                        if (player.Timer.IsRunning && player.ReplayRecorder.IsRecording)
+                            player.ReplayRecorder.CurrentSituation = ReplayFrameSituation.CHECKPOINT_ZONE_ENTER;
+                            
                         
                         // Print checkpoint message
                         player.HUD.DisplayCheckpointMessages(PluginPrefix);
@@ -219,6 +365,117 @@ public partial class SurfTimer
                     #if DEBUG
                     player.Controller.PrintToChat($"CS2 Surf DEBUG >> CBaseTrigger_{ChatColors.Lime}StartTouchFunc{ChatColors.Default} -> {ChatColors.LightBlue}Checkpoint {Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value} Zone");
                     #endif
+                }
+            
+                // Bonus start zones -- hook into (b)onus#_start
+                else if (Regex.Match(trigger.Entity.Name, "^b([1-9][0-9]?|onus[1-9][0-9]?)_start$").Success)
+                {
+                    // We only want this working if they're in bonus mode, ignore otherwise.
+                    if (player.Timer.IsBonusMode) 
+                    {
+                        player.ReplayRecorder.Start(); // Start replay recording
+                        player.ReplayRecorder.CurrentSituation = ReplayFrameSituation.START_ZONE_ENTER;
+
+                        player.Timer.Reset();
+                        player.Timer.IsBonusMode = true;
+                        int bonus = Int32.Parse(Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value);
+                        player.Timer.Bonus = bonus;
+
+                        player.Controller.PrintToCenter($"Bonus Start ({trigger.Entity.Name})");
+
+                        #if DEBUG
+                        Console.WriteLine($"CS2 Surf DEBUG >> CBaseTrigger_StartTouchFunc (Bonus start zones) -> player.Timer.IsRunning: {player.Timer.IsRunning}");
+                        Console.WriteLine($"CS2 Surf DEBUG >> CBaseTrigger_StartTouchFunc (Bonus start zones) -> !player.Timer.IsBonusMode: {!player.Timer.IsBonusMode}");
+                        #endif
+                    }
+                }
+
+                // Bonus end zones -- hook into (b)onus#_end
+                else if (Regex.Match(trigger.Entity.Name, "^b([1-9][0-9]?|onus[1-9][0-9]?)_end$").Success)
+                {
+                    // We only want this working if they're in bonus mode, ignore otherwise.
+                    if (player.Timer.IsBonusMode && player.Timer.IsRunning) 
+                    {
+                        // To-do: verify the bonus trigger being hit!
+                        int bonus_idx = Int32.Parse(Regex.Match(trigger.Entity.Name, "[0-9][0-9]?").Value) - 1;
+                        if (1 != player.Timer.Bonus) // Realy????!!
+                        {
+                            // Exit hook as this end zone is not relevant to the player's current bonus
+                            return HookResult.Continue;
+                        }
+
+                        player.Timer.Stop();
+                        player.ReplayRecorder.CurrentSituation = ReplayFrameSituation.END_ZONE_ENTER;
+
+                        player.Stats.ThisRun.Ticks = player.Timer.Ticks; // End time for the run
+                        player.Stats.ThisRun.EndVelX = velocity_x; // End pre speed for the run
+                        player.Stats.ThisRun.EndVelY = velocity_y; // End pre speed for the run
+                        player.Stats.ThisRun.EndVelZ = velocity_z; // End pre speed for the run
+
+                        string PracticeString = "";
+                        if (player.Timer.IsPracticeMode)
+                            PracticeString = $"({ChatColors.Grey}Practice{ChatColors.Default}) ";
+                    
+                        // To-do: make Style (currently 0) be dynamic
+                        if (player.Stats.BonusPB[bonus_idx][style].Ticks <= 0) // Player first ever PB for the bonus
+                        {
+                            Server.PrintToChatAll($"{PluginPrefix} {PracticeString}{player.Controller.PlayerName} finished bonus {bonus_idx+1} in {ChatColors.Gold}{PlayerHUD.FormatTime(player.Timer.Ticks)}{ChatColors.Default} ({player.Timer.Ticks})!");
+                        }
+                        else if (player.Timer.Ticks < player.Stats.BonusPB[bonus_idx][style].Ticks) // Player beating their existing PB for the bonus
+                        {
+                            Server.PrintToChatAll($"{PluginPrefix} {PracticeString}{ChatColors.Lime}{player.Profile.Name}{ChatColors.Default} beat their bonus {bonus_idx+1} PB in {ChatColors.Gold}{PlayerHUD.FormatTime(player.Timer.Ticks)}{ChatColors.Default} (Old: {ChatColors.BlueGrey}{PlayerHUD.FormatTime(player.Stats.BonusPB[bonus_idx][style].Ticks)}{ChatColors.Default})!");
+                        }
+                        else // Player did not beat their existing personal best for the bonus
+                        {
+                            player.Controller.PrintToChat($"{PluginPrefix} {PracticeString}You finished bonus {bonus_idx+1} in {ChatColors.Yellow}{PlayerHUD.FormatTime(player.Timer.Ticks)}{ChatColors.Default}!");
+                            return HookResult.Continue; // Exit here so we don't write to DB
+                        }
+
+                        if (DB == null)
+                            throw new Exception("CS2 Surf ERROR >> OnTriggerStartTouch (Bonus end zone) -> DB object is null, this shouldn't happen.");
+                    
+                        player.Stats.BonusPB[bonus_idx][style].Ticks = player.Timer.Ticks; // Reload the run_time for the HUD and also assign for the DB query
+                        
+                        // To-do: save to DB
+                        if (!player.Timer.IsPracticeMode)
+                        {
+                            AddTimer(1.5f, () => {
+                                API_CurrentRun bonus_time = new API_CurrentRun
+                                {
+                                    player_id = player.Profile.ID,
+                                    map_id = player.CurrMap.ID,
+                                    style = style,
+                                    type = 1,
+                                    stage = bonus_idx,
+                                    run_time = player.Stats.ThisRun.Ticks,
+                                    run_date = (int)DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                                    replay_frames = player.ReplayRecorder.SerializeReplay()
+                                };
+
+                                Task.Run(async () => {
+                                    await APICall.POST("/surftimer/savebonustime", bonus_time);
+                                    player.Stats.LoadBonusTime(player);
+                                    CurrentMap.GetMapRecordAndTotals(); // Reload the Map record and totals for the HUD
+                                });
+                            });
+
+                            if(player.Timer.Ticks < CurrentMap.BonusWR[bonus_idx][player.Timer.Style].Ticks || CurrentMap.BonusWR[bonus_idx][player.Timer.Style].ID == -1)
+                            {
+                                AddTimer(2f, () => {
+                                    CurrentMap.ReplayManager.BonusWR!.Stage = bonus_idx;
+                                    CurrentMap.ReplayManager.BonusWR.LoadReplayData(repeat_count: 3);
+
+                                    AddTimer(1.5f, () => {
+                                        CurrentMap.ReplayManager.BonusWR.FormatBotName();
+                                    });
+
+                                    //CurrentMap.ReplayManager.BonusWR.FormatBotName();
+                                    // CurrentMap.ReplayManager.BonusWR.ResetReplay();
+                                    // CurrentMap.ReplayManager.BonusWR.RepeatCount = 3;
+                                });
+                            }
+                        }
+                    }
                 }
             }
 
