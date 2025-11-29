@@ -5,12 +5,6 @@ namespace SurfTimer;
 public class PlayerHud
 {
     private readonly Player _player;
-    private readonly string TimerColor = "#4FC3F7";
-    private readonly string TimerColorPractice = "#BA68C8";
-    private readonly string TimerColorActive = "#43A047";
-    private readonly string RankColorPb = "#7986CB";
-    private readonly string RankColorWr = "#FFD700";
-    private readonly string SpectatorColor = "#9E9E9E";
 
     internal PlayerHud(Player Player)
     {
@@ -43,11 +37,11 @@ public class PlayerHud
     /// <summary>
     /// Formats the given time in ticks into a readable time string.
     /// Unless specified differently, the default formatting will be `Compact`.
-    /// Check <see cref="PlayerTimer.TimeFormatStyle"/> for all formatting types.
+    /// Check <see cref="PlayerSettings.TimeFormatStyle"/> for all formatting types.
     /// </summary>
     public static string FormatTime(
         int ticks,
-        PlayerTimer.TimeFormatStyle style = PlayerTimer.TimeFormatStyle.Compact
+        PlayerSettings.TimeFormatStyle style = PlayerSettings.TimeFormatStyle.Compact
     )
     {
         TimeSpan time = TimeSpan.FromSeconds(ticks / 64.0);
@@ -55,15 +49,15 @@ public class PlayerHud
 
         switch (style)
         {
-            case PlayerTimer.TimeFormatStyle.Compact:
+            case PlayerSettings.TimeFormatStyle.Compact:
                 return time.TotalMinutes < 1
                     ? $"{time.Seconds:D2}.{millis:D3}"
                     : $"{time.Minutes:D1}:{time.Seconds:D2}.{millis:D3}";
-            case PlayerTimer.TimeFormatStyle.Full:
+            case PlayerSettings.TimeFormatStyle.Full:
                 return time.TotalHours < 1
                     ? $"{time.Minutes:D2}:{time.Seconds:D2}.{millis:D3}"
                     : $"{time.Hours:D2}:{time.Minutes:D2}:{time.Seconds:D2}.{millis:D3}";
-            case PlayerTimer.TimeFormatStyle.Verbose:
+            case PlayerSettings.TimeFormatStyle.Verbose:
                 return $"{time.Hours}h {time.Minutes}m {time.Seconds}s {millis}ms";
             default:
                 throw new ArgumentException("Invalid time format style");
@@ -77,14 +71,14 @@ public class PlayerHud
     internal string BuildTimerWithPrefix()
     {
         // Timer Module
-        string timerColor = TimerColor;
+        string timerColor = _player.Settings.TimerColor;
 
         if (_player.Timer.IsRunning)
         {
             if (_player.Timer.IsPracticeMode)
-                timerColor = TimerColorPractice;
+                timerColor = _player.Settings.TimerColorPractice;
             else
-                timerColor = TimerColorActive;
+                timerColor = _player.Settings.TimerColorActive;
         }
 
         string prefix = "";
@@ -99,7 +93,7 @@ public class PlayerHud
 
         string timerModule = FormatHUDElementHTML(
             "",
-            prefix + FormatTime(_player.Timer.Ticks),
+            prefix + FormatTime(_player.Timer.Ticks, _player.Settings.TimeFormat),
             timerColor
         );
 
@@ -112,7 +106,7 @@ public class PlayerHud
     /// <returns>string velocityModule</returns>
     internal string BuildVelocityModule()
     {
-        float velocity = Extensions.GetVelocityFromController(_player.Controller);
+        float velocity = Extensions.GetVelocityFromController(_player.Controller, _player.Settings.VelocityFormat);
         string velocityModule =
             FormatHUDElementHTML(
                 "Speed",
@@ -131,7 +125,7 @@ public class PlayerHud
         int style = _player.Timer.Style;
 
         // Rank Module
-        string rankModule = FormatHUDElementHTML("Rank", $"N/A", RankColorPb);
+        string rankModule = FormatHUDElementHTML("Rank", $"N/A", _player.Settings.RankColorPb);
         if (_player.Timer.IsBonusMode)
         {
             if (
@@ -141,13 +135,13 @@ public class PlayerHud
                 rankModule = FormatHUDElementHTML(
                     "Rank",
                     $"{_player.Stats.BonusPB[_player.Timer.Bonus][style].Rank}/{SurfTimer.CurrentMap.BonusCompletions[_player.Timer.Bonus][style]}",
-                    RankColorPb
+                    _player.Settings.RankColorPb
                 );
             else if (SurfTimer.CurrentMap.BonusWR[_player.Timer.Bonus][style].ID != -1)
                 rankModule = FormatHUDElementHTML(
                     "Rank",
                     $"-/{SurfTimer.CurrentMap.BonusCompletions[_player.Timer.Bonus][style]}",
-                    RankColorPb
+                    _player.Settings.RankColorPb
                 );
         }
         else if (_player.Timer.IsStageMode)
@@ -159,13 +153,13 @@ public class PlayerHud
                 rankModule = FormatHUDElementHTML(
                     "Rank",
                     $"{_player.Stats.StagePB[_player.Timer.Stage][style].Rank}/{SurfTimer.CurrentMap.StageCompletions[_player.Timer.Stage][style]}",
-                    RankColorPb
+                    _player.Settings.RankColorPb
                 );
             else if (SurfTimer.CurrentMap.StageWR[_player.Timer.Stage][style].ID != -1)
                 rankModule = FormatHUDElementHTML(
                     "Rank",
                     $"-/{SurfTimer.CurrentMap.StageCompletions[_player.Timer.Stage][style]}",
-                    RankColorPb
+                    _player.Settings.RankColorPb
                 );
         }
         else
@@ -174,13 +168,13 @@ public class PlayerHud
                 rankModule = FormatHUDElementHTML(
                     "Rank",
                     $"{_player.Stats.PB[style].Rank}/{SurfTimer.CurrentMap.MapCompletions[style]}",
-                    RankColorPb
+                    _player.Settings.RankColorPb
                 );
             else if (SurfTimer.CurrentMap.WR[style].ID != -1)
                 rankModule = FormatHUDElementHTML(
                     "Rank",
                     $"-/{SurfTimer.CurrentMap.MapCompletions[style]}",
-                    RankColorPb
+                    _player.Settings.RankColorPb
                 );
         }
 
@@ -199,9 +193,9 @@ public class PlayerHud
         string pbModule = FormatHUDElementHTML(
             "PB",
             _player.Stats.PB[style].RunTime > 0
-                ? FormatTime(_player.Stats.PB[style].RunTime)
+                ? FormatTime(_player.Stats.PB[style].RunTime, _player.Settings.TimeFormat)
                 : "N/A",
-            RankColorPb
+            _player.Settings.RankColorPb
         );
 
         if (_player.Timer.Bonus > 0 && _player.Timer.IsBonusMode) // Show corresponding bonus values
@@ -209,9 +203,9 @@ public class PlayerHud
             pbModule = FormatHUDElementHTML(
                 "PB",
                 _player.Stats.BonusPB[_player.Timer.Bonus][style].RunTime > 0
-                    ? FormatTime(_player.Stats.BonusPB[_player.Timer.Bonus][style].RunTime)
+                    ? FormatTime(_player.Stats.BonusPB[_player.Timer.Bonus][style].RunTime, _player.Settings.TimeFormat)
                     : "N/A",
-                RankColorPb
+                _player.Settings.RankColorPb
             );
         }
         else if (_player.Timer.IsStageMode) // Show corresponding stage values
@@ -219,9 +213,9 @@ public class PlayerHud
             pbModule = FormatHUDElementHTML(
                 "PB",
                 _player.Stats.StagePB[_player.Timer.Stage][style].RunTime > 0
-                    ? FormatTime(_player.Stats.StagePB[_player.Timer.Stage][style].RunTime)
+                    ? FormatTime(_player.Stats.StagePB[_player.Timer.Stage][style].RunTime, _player.Settings.TimeFormat)
                     : "N/A",
-                RankColorPb
+                _player.Settings.RankColorPb
             );
         }
 
@@ -240,9 +234,9 @@ public class PlayerHud
         string wrModule = FormatHUDElementHTML(
             "WR",
             SurfTimer.CurrentMap.WR[style].RunTime > 0
-                ? FormatTime(SurfTimer.CurrentMap.WR[style].RunTime)
+                ? FormatTime(SurfTimer.CurrentMap.WR[style].RunTime, _player.Settings.TimeFormat)
                 : "N/A",
-            RankColorWr
+                _player.Settings.RankColorWr
         );
 
         if (_player.Timer.Bonus > 0 && _player.Timer.IsBonusMode) // Show corresponding bonus values
@@ -250,9 +244,9 @@ public class PlayerHud
             wrModule = FormatHUDElementHTML(
                 "WR",
                 SurfTimer.CurrentMap.BonusWR[_player.Timer.Bonus][style].RunTime > 0
-                    ? FormatTime(SurfTimer.CurrentMap.BonusWR[_player.Timer.Bonus][style].RunTime)
+                    ? FormatTime(SurfTimer.CurrentMap.BonusWR[_player.Timer.Bonus][style].RunTime, _player.Settings.TimeFormat)
                     : "N/A",
-                RankColorWr
+                _player.Settings.RankColorWr
             );
         }
         else if (_player.Timer.IsStageMode) // Show corresponding stage values
@@ -260,9 +254,9 @@ public class PlayerHud
             wrModule = FormatHUDElementHTML(
                 "WR",
                 SurfTimer.CurrentMap.StageWR[_player.Timer.Stage][style].RunTime > 0
-                    ? FormatTime(SurfTimer.CurrentMap.StageWR[_player.Timer.Stage][style].RunTime)
+                    ? FormatTime(SurfTimer.CurrentMap.StageWR[_player.Timer.Stage][style].RunTime, _player.Settings.TimeFormat)
                     : "N/A",
-                RankColorWr
+                _player.Settings.RankColorWr
             );
         }
 
@@ -348,14 +342,14 @@ public class PlayerHud
     /// <param name="specReplay">Replay data to use</param>
     internal string BuildMapWrModule(ReplayPlayer specReplay)
     {
-        float velocity = Extensions.GetVelocityFromController(specReplay.Controller!);
-        string timerColor = specReplay.ReplayCurrentRunTime > 0 ? TimerColorActive : RankColorWr;
+        float velocity = Extensions.GetVelocityFromController(specReplay.Controller!, _player.Settings.VelocityFormat);
+        string timerColor = specReplay.ReplayCurrentRunTime > 0 ? _player.Settings.TimerColorActive : _player.Settings.RankColorWr;
 
-        string replayModule = FormatHUDElementHTML("", "Map WR Replay", SpectatorColor, "m");
-        string nameModule = FormatHUDElementHTML("", $"{specReplay.RecordPlayerName}", RankColorWr);
+        string replayModule = FormatHUDElementHTML("", "Map WR Replay", _player.Settings.SpectatorColor, "m");
+        string nameModule = FormatHUDElementHTML("", $"{specReplay.RecordPlayerName}", _player.Settings.RankColorWr);
         string timeModule = FormatHUDElementHTML(
             "",
-            $"{FormatTime(specReplay.ReplayCurrentRunTime)} / {FormatTime(specReplay.RecordRunTime)}",
+            $"{FormatTime(specReplay.ReplayCurrentRunTime, _player.Settings.TimeFormat)} / {FormatTime(specReplay.RecordRunTime, _player.Settings.TimeFormat)}",
             timerColor
         );
         string velocityModule =
@@ -367,7 +361,7 @@ public class PlayerHud
         string cycleModule = FormatHUDElementHTML(
             "Cycle",
             $"{specReplay.RepeatCount}",
-            SpectatorColor,
+            _player.Settings.SpectatorColor,
             "s"
         );
 
@@ -380,19 +374,19 @@ public class PlayerHud
     /// <param name="specReplay">Replay data to use</param>
     internal string BuildStageWrModule(ReplayPlayer specReplay)
     {
-        float velocity = Extensions.GetVelocityFromController(specReplay.Controller!);
-        string timerColor = specReplay.ReplayCurrentRunTime > 0 ? TimerColorActive : RankColorWr;
+        float velocity = Extensions.GetVelocityFromController(specReplay.Controller!, _player.Settings.VelocityFormat);
+        string timerColor = specReplay.ReplayCurrentRunTime > 0 ? _player.Settings.TimerColorActive : _player.Settings.RankColorWr;
 
         string replayModule = FormatHUDElementHTML(
             "",
             $"Stage {specReplay.Stage} WR Replay",
-            SpectatorColor,
+            _player.Settings.SpectatorColor,
             "m"
         );
-        string nameModule = FormatHUDElementHTML("", $"{specReplay.RecordPlayerName}", RankColorWr);
+        string nameModule = FormatHUDElementHTML("", $"{specReplay.RecordPlayerName}", _player.Settings.RankColorWr);
         string timeModule = FormatHUDElementHTML(
             "",
-            $"{FormatTime(specReplay.ReplayCurrentRunTime)} / {FormatTime(specReplay.RecordRunTime)}",
+            $"{FormatTime(specReplay.ReplayCurrentRunTime, _player.Settings.TimeFormat)} / {FormatTime(specReplay.RecordRunTime, _player.Settings.TimeFormat)}",
             timerColor
         );
         string velocityModule =
@@ -404,7 +398,7 @@ public class PlayerHud
         string cycleModule = FormatHUDElementHTML(
             "Cycle",
             $"{specReplay.RepeatCount}",
-            SpectatorColor,
+            _player.Settings.SpectatorColor,
             "s"
         );
 
@@ -417,19 +411,19 @@ public class PlayerHud
     /// <param name="specReplay">Replay data to use<</param>
     internal string BuildBonusWrModule(ReplayPlayer specReplay)
     {
-        float velocity = Extensions.GetVelocityFromController(specReplay.Controller!);
-        string timerColor = specReplay.ReplayCurrentRunTime > 0 ? TimerColorActive : RankColorWr;
+        float velocity = Extensions.GetVelocityFromController(specReplay.Controller!, _player.Settings.VelocityFormat);
+        string timerColor = specReplay.ReplayCurrentRunTime > 0 ? _player.Settings.TimerColorActive : _player.Settings.RankColorWr;
 
         string replayModule = FormatHUDElementHTML(
             "",
             $"Bonus {specReplay.Stage} WR Replay",
-            SpectatorColor,
+            _player.Settings.SpectatorColor,
             "m"
         );
-        string nameModule = FormatHUDElementHTML("", $"{specReplay.RecordPlayerName}", RankColorWr);
+        string nameModule = FormatHUDElementHTML("", $"{specReplay.RecordPlayerName}", _player.Settings.RankColorWr);
         string timeModule = FormatHUDElementHTML(
             "",
-            $"{FormatTime(specReplay.ReplayCurrentRunTime)} / {FormatTime(specReplay.RecordRunTime)}",
+            $"{FormatTime(specReplay.ReplayCurrentRunTime, _player.Settings.TimeFormat)} / {FormatTime(specReplay.RecordRunTime, _player.Settings.TimeFormat)}",
             timerColor
         );
         string velocityModule =
@@ -441,7 +435,7 @@ public class PlayerHud
         string cycleModule = FormatHUDElementHTML(
             "Cycle",
             $"{specReplay.RepeatCount}",
-            SpectatorColor,
+            _player.Settings.SpectatorColor,
             "s"
         );
 
@@ -454,8 +448,8 @@ public class PlayerHud
     /// <param name="specReplay">Replay data to use<</param>
     internal string BuildCustomReplayModule(ReplayPlayer specReplay)
     {
-        float velocity = Extensions.GetVelocityFromController(specReplay.Controller!);
-        string timerColor = specReplay.ReplayCurrentRunTime > 0 ? TimerColorActive : RankColorWr;
+        float velocity = Extensions.GetVelocityFromController(specReplay.Controller!, _player.Settings.VelocityFormat);
+        string timerColor = specReplay.ReplayCurrentRunTime > 0 ? _player.Settings.TimerColorActive : _player.Settings.RankColorWr;
 
         string replayType;
         switch (specReplay.Type)
@@ -473,11 +467,11 @@ public class PlayerHud
                 return ""; // Invalid type
         }
 
-        string replayModule = FormatHUDElementHTML("", replayType, SpectatorColor, "m");
-        string nameModule = FormatHUDElementHTML("", $"{specReplay.RecordPlayerName}", RankColorWr);
+        string replayModule = FormatHUDElementHTML("", replayType, _player.Settings.SpectatorColor, "m");
+        string nameModule = FormatHUDElementHTML("", $"{specReplay.RecordPlayerName}", _player.Settings.RankColorWr);
         string timeModule = FormatHUDElementHTML(
             "",
-            $"{FormatTime(specReplay.ReplayCurrentRunTime)} / {FormatTime(specReplay.RecordRunTime)}",
+            $"{FormatTime(specReplay.ReplayCurrentRunTime, _player.Settings.TimeFormat)} / {FormatTime(specReplay.RecordRunTime, _player.Settings.TimeFormat)}",
             timerColor
         );
         string velocityModule =
@@ -489,7 +483,7 @@ public class PlayerHud
         string cycleModule = FormatHUDElementHTML(
             "Cycle",
             $"{specReplay.RepeatCount}",
-            SpectatorColor,
+            _player.Settings.SpectatorColor,
             "s"
         );
 
@@ -509,7 +503,7 @@ public class PlayerHud
         int style = _player.Timer.Style;
         int playerCurrentCheckpoint = _player.Timer.Checkpoint;
         int currentTime = _player.Timer.Ticks;
-        float currentSpeed = Extensions.GetVelocityFromController(_player.Controller!);
+        float currentSpeed = Extensions.GetVelocityFromController(_player.Controller!, _player.Settings.VelocityFormat);
 
         // Default values for the PB and WR differences in case no calculations can be made
         string strPbDifference =
@@ -552,11 +546,11 @@ public class PlayerHud
             // Calculate the time difference
             if (pbTime - currentTime < 0.0)
             {
-                strPbDifference += ChatColors.Red + "+" + FormatTime((pbTime - currentTime) * -1); // We multiply by -1 to get the positive value
+                strPbDifference += ChatColors.Red + "+" + FormatTime((pbTime - currentTime) * -1, _player.Settings.TimeFormat); // We multiply by -1 to get the positive value
             }
             else if (pbTime - currentTime >= 0.0)
             {
-                strPbDifference += ChatColors.Green + "-" + FormatTime(pbTime - currentTime);
+                strPbDifference += ChatColors.Green + "-" + FormatTime(pbTime - currentTime, _player.Settings.TimeFormat);
             }
             strPbDifference += ChatColors.Default + " ";
 
@@ -607,11 +601,11 @@ public class PlayerHud
             // Calculate the WR time difference
             if (wrTime - currentTime < 0.0)
             {
-                strWrDifference += ChatColors.Red + "+" + FormatTime((wrTime - currentTime) * -1); // We multiply by -1 to get the positive value
+                strWrDifference += ChatColors.Red + "+" + FormatTime((wrTime - currentTime) * -1, _player.Settings.TimeFormat); // We multiply by -1 to get the positive value
             }
             else if (wrTime - currentTime >= 0.0)
             {
-                strWrDifference += ChatColors.Green + "-" + FormatTime(wrTime - currentTime);
+                strWrDifference += ChatColors.Green + "-" + FormatTime(wrTime - currentTime, _player.Settings.TimeFormat);
             }
             strWrDifference += ChatColors.Default + " ";
 
@@ -632,7 +626,7 @@ public class PlayerHud
         // Print checkpoint message
         _player.Controller.PrintToChat(
             $"{Config.PluginPrefix} {LocalizationService.LocalizerNonNull["checkpoint_message",
-            playerCurrentCheckpoint, FormatTime(_player.Timer.Ticks), currentSpeed.ToString("0"), strPbDifference, strWrDifference]}"
+            playerCurrentCheckpoint, FormatTime(_player.Timer.Ticks, _player.Settings.TimeFormat), currentSpeed.ToString("0"), strPbDifference, strWrDifference]}"
         );
 
 #if DEBUG

@@ -146,37 +146,38 @@ public class CurrentRun : RunStatsEntity
         );
 #endif
         int pStyle = player.Timer.Style;
+
         if (
             stage_run_time < SurfTimer.CurrentMap.StageWR[stage][pStyle].RunTime ||
-            SurfTimer.CurrentMap.StageWR[stage][pStyle].ID == -1 ||
+            SurfTimer.CurrentMap.StageWR[stage][pStyle].ID == 0 ||
             player.Stats.StagePB[stage][pStyle] != null && player.Stats.StagePB[stage][pStyle].RunTime > stage_run_time ||
-            player.Stats.StagePB[stage][pStyle] != null && player.Stats.StagePB[stage][pStyle].ID == -1
+            player.Stats.StagePB[stage][pStyle] != null && player.Stats.StagePB[stage][pStyle].ID == 0
         )
         {
             if (stage_run_time < SurfTimer.CurrentMap.StageWR[stage][pStyle].RunTime) // Player beat the Stage WR
             {
                 int timeImprove = SurfTimer.CurrentMap.StageWR[stage][pStyle].RunTime - stage_run_time;
                 Server.PrintToChatAll($"{Config.PluginPrefix} {LocalizationService.LocalizerNonNull["stagewr_improved",
-                    player.Controller.PlayerName, stage, PlayerHud.FormatTime(stage_run_time), PlayerHud.FormatTime(timeImprove), PlayerHud.FormatTime(SurfTimer.CurrentMap.StageWR[stage][pStyle].RunTime)]}"
+                    player.Controller.PlayerName, stage, PlayerHud.FormatTime(stage_run_time, player.Settings.TimeFormat), PlayerHud.FormatTime(timeImprove, player.Settings.TimeFormat), PlayerHud.FormatTime(SurfTimer.CurrentMap.StageWR[stage][pStyle].RunTime, player.Settings.TimeFormat)]}"
                 );
             }
-            else if (SurfTimer.CurrentMap.StageWR[stage][pStyle].ID == -1) // No Stage record was set on the map
+            else if (SurfTimer.CurrentMap.StageWR[stage][pStyle].ID == 0) // No Stage record was set on the map
             {
                 Server.PrintToChatAll($"{Config.PluginPrefix} {LocalizationService.LocalizerNonNull["stagewr_set",
-                    player.Controller.PlayerName, stage, PlayerHud.FormatTime(stage_run_time)]}"
+                    player.Controller.PlayerName, stage, PlayerHud.FormatTime(stage_run_time, player.Settings.TimeFormat)]}"
                 );
             }
-            else if (player.Stats.StagePB[stage][pStyle] != null && player.Stats.StagePB[stage][pStyle].ID == -1) // Player first Stage personal best
+            else if (player.Stats.StagePB[stage][pStyle] != null && player.Stats.StagePB[stage][pStyle].ID == 0) // Player first Stage personal best
             {
                 player.Controller.PrintToChat($"{Config.PluginPrefix} {LocalizationService.LocalizerNonNull["stagepb_set",
-                    stage, PlayerHud.FormatTime(stage_run_time)]}"
+                    stage, PlayerHud.FormatTime(stage_run_time, player.Settings.TimeFormat)]}"
                 );
             }
             else if (player.Stats.StagePB[stage][pStyle] != null && player.Stats.StagePB[stage][pStyle].RunTime > stage_run_time) // Player beating their existing Stage personal best
             {
                 int timeImprove = player.Stats.StagePB[stage][pStyle].RunTime - stage_run_time;
                 Server.PrintToChatAll($"{Config.PluginPrefix} {LocalizationService.LocalizerNonNull["stagepb_improved",
-                    player.Controller.PlayerName, stage, PlayerHud.FormatTime(stage_run_time), PlayerHud.FormatTime(timeImprove), PlayerHud.FormatTime(player.Stats.StagePB[stage][pStyle].RunTime)]}"
+                    player.Controller.PlayerName, stage, PlayerHud.FormatTime(stage_run_time, player.Settings.TimeFormat), PlayerHud.FormatTime(timeImprove, player.Settings.TimeFormat), PlayerHud.FormatTime(player.Stats.StagePB[stage][pStyle].RunTime, player.Settings.TimeFormat)]}"
                 );
             }
 
@@ -189,7 +190,7 @@ public class CurrentRun : RunStatsEntity
         {
             int timeImprove = stage_run_time - SurfTimer.CurrentMap.StageWR[stage][pStyle].RunTime;
             player.Controller.PrintToChat($"{Config.PluginPrefix} {LocalizationService.LocalizerNonNull["stagewr_missed",
-                stage, PlayerHud.FormatTime(stage_run_time), PlayerHud.FormatTime(timeImprove), PlayerHud.FormatTime(SurfTimer.CurrentMap.StageWR[stage][pStyle].RunTime)]}"
+                stage, PlayerHud.FormatTime(stage_run_time, player.Settings.TimeFormat), PlayerHud.FormatTime(timeImprove, player.Settings.TimeFormat), PlayerHud.FormatTime(SurfTimer.CurrentMap.StageWR[stage][pStyle].RunTime, player.Settings.TimeFormat)]}"
             );
         }
     }

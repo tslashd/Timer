@@ -24,6 +24,8 @@
   "saveloc_teleported": "Teleported to #{green}{0}",
   "saveloc_first": "{red}Already at first location",
   "saveloc_last": "{red}Already at last location",
+  "velocity_format_changed": "Velocity format changed to {yellow}{0}{default}.",
+  "time_format_changed": "Time format changed to {yellow}{0}{default}.",
 
   /* TriggerStartTouch */
   "stagewr_set": "{lime}{0}{default} set the first {yellow}Stage {1}{default} record at {gold}{2}{default}!",

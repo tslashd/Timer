@@ -9,6 +9,12 @@ namespace SurfTimer;
 
 unsafe static class Extensions
 {
+    public static (VectorT fwd, VectorT right, VectorT up) AngleVectors(this QAngle vec) => vec.ToQAngle_t().AngleVectors();
+    public static void AngleVectors(this QAngle vec, out VectorT fwd, out VectorT right, out VectorT up) => vec.ToQAngle_t().AngleVectors(out fwd, out right, out up);
+
+    public static VectorT ToVector_t(this Vector vec) => new(vec.Handle);
+    public static QAngleT ToQAngle_t(this QAngle vec) => new(vec.Handle);
+
     public static void Teleport(this CBaseEntity entity, VectorT? position = null, QAngleT? angles = null, VectorT? velocity = null)
     {
         Guard.IsValidEntity(entity);
@@ -38,12 +44,6 @@ unsafe static class Extensions
         VirtualFunction.CreateVoid<IntPtr, IntPtr, IntPtr, IntPtr>(entity.Handle, GameData.GetOffset("CBaseEntity_Teleport"))(entity.Handle, (nint)pPos,
             (nint)pAng, (nint)pVel);
     }
-
-    public static (VectorT fwd, VectorT right, VectorT up) AngleVectors(this QAngle vec) => vec.ToQAngle_t().AngleVectors();
-    public static void AngleVectors(this QAngle vec, out VectorT fwd, out VectorT right, out VectorT up) => vec.ToQAngle_t().AngleVectors(out fwd, out right, out up);
-
-    public static VectorT ToVector_t(this Vector vec) => new(vec.Handle);
-    public static QAngleT ToQAngle_t(this QAngle vec) => new(vec.Handle);
 
     /// <summary>
     /// Checks whether an IP is a local one. Allows testing the plugin in a local environment setup for GeoIP
@@ -137,14 +137,25 @@ unsafe static class Extensions
     /// </summary>
     /// <param name="controller">Controller to calculate velocity for</param>
     /// <returns>float velocity</returns>
-    public static float GetVelocityFromController(CCSPlayerController controller)
+    public static float GetVelocityFromController(
+        CCSPlayerController controller,
+        PlayerSettings.VelocityFormatStyle format = PlayerSettings.VelocityFormatStyle.XY
+        )
     {
         var pawn = controller.PlayerPawn?.Value;
         if (pawn == null)
             return 0.0f;
 
         var vel = pawn.AbsVelocity;
-        return (float)Math.Sqrt(vel.X * vel.X + vel.Y * vel.Y + vel.Z * vel.Z);
-    }
 
+        switch (format)
+        {
+            case PlayerSettings.VelocityFormatStyle.XY:
+                return (float)Math.Sqrt(vel.X * vel.X + vel.Y * vel.Y);
+            case PlayerSettings.VelocityFormatStyle.XYZ:
+                return (float)Math.Sqrt(vel.X * vel.X + vel.Y * vel.Y + vel.Z * vel.Z);
+            default:
+                return (float)Math.Sqrt(vel.X * vel.X + vel.Y * vel.Y);
+        }
+    }
 }

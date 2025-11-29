@@ -19,6 +19,9 @@ public class Player
     // Player information
     public PlayerProfile Profile {get; set;}
 
+    // Player Settings
+    public PlayerSettings Settings { get; set; } = new PlayerSettings();
+
     // Constructor
     internal Player(CCSPlayerController Controller, CCSPlayer_MovementServices MovementServices, PlayerProfile Profile)
     {

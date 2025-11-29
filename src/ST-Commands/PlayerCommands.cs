@@ -1,9 +1,9 @@
+using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Attributes.Registration;
-using CounterStrikeSharp.API.Modules.Commands;
-using CounterStrikeSharp.API;
-using CounterStrikeSharp.API.Modules.Utils;
 using CounterStrikeSharp.API.Modules.Admin;
+using CounterStrikeSharp.API.Modules.Commands;
+using CounterStrikeSharp.API.Modules.Utils;
 
 namespace SurfTimer;
 
@@ -252,6 +252,59 @@ public partial class SurfTimer
         int tRank = CurrentMap.MapCompletions[playerList[player.UserId ?? 0].Timer.Style];
         player.PrintToChat($"{Config.PluginPrefix} {LocalizationService.LocalizerNonNull["rank",
             CurrentMap.Name!, pRank, tRank]}"
+        );
+    }
+
+
+    /*
+    #########################
+        Settings Commands
+    #########################
+    */
+    [ConsoleCommand("css_velocity", "Change the velocity formatting")]
+    [ConsoleCommand("css_formatvelocity", "Change the velocity formatting")]
+    [ConsoleCommand("css_vel", "Change the velocity formatting")]
+    [ConsoleCommand("css_formatvel", "Change the velocity formatting")]
+    [ConsoleCommand("css_fv", "Change the velocity formatting")]
+    [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
+    public void PlayerChangeVelocityFormat(CCSPlayerController? player, CommandInfo command)
+    {
+        if (player == null)
+            return;
+
+        Player oPlayer = playerList[player.UserId ?? 0];
+
+        if (oPlayer.Settings.VelocityFormat == PlayerSettings.VelocityFormatStyle.XYZ)
+        {
+            oPlayer.Settings.VelocityFormat = PlayerSettings.VelocityFormatStyle.XY;
+        }
+        else
+        {
+            oPlayer.Settings.VelocityFormat = PlayerSettings.VelocityFormatStyle.XYZ;
+        }
+
+        oPlayer.Controller.PrintToChat($"{Config.PluginPrefix} {LocalizationService.LocalizerNonNull["velocity_format_changed",
+            oPlayer.Settings.VelocityFormat.ToString()]}" 
+        );
+    }
+
+    [ConsoleCommand("css_time", "Change the time formatting")]
+    [ConsoleCommand("css_formattime", "Change the time formatting")]
+    [ConsoleCommand("css_ft", "Change the time formatting")]
+    [CommandHelper(whoCanExecute: CommandUsage.CLIENT_ONLY)]
+    public void PlayerChangeTimeFormat(CCSPlayerController? player, CommandInfo command)
+    {
+        if (player == null)
+            return;
+
+        Player oPlayer = playerList[player.UserId ?? 0];
+
+        var values = (PlayerSettings.TimeFormatStyle[])Enum.GetValues(typeof(PlayerSettings.TimeFormatStyle));
+        int index = Array.IndexOf(values, oPlayer.Settings.TimeFormat);
+        oPlayer.Settings.TimeFormat = values[(index + 1) % values.Length];
+
+        oPlayer.Controller.PrintToChat($"{Config.PluginPrefix} {LocalizationService.LocalizerNonNull["time_format_changed",
+            oPlayer.Settings.TimeFormat.ToString()]}"
         );
     }
 
@@ -564,14 +617,14 @@ public partial class SurfTimer
         player.PrintToChat($"{Config.PluginPrefix}{ChatColors.Lime}====== PLAYER ======");
         player.PrintToChat($"{Config.PluginPrefix} Profile ID: {ChatColors.Green}{oPlayer.Profile.ID}");
         player.PrintToChat($"{Config.PluginPrefix} Steam ID: {ChatColors.Green}{oPlayer.Profile.SteamID}");
-        player.PrintToChat($"{Config.PluginPrefix} MapTime ID: {ChatColors.Green}{oPlayer.Stats.PB[style].ID} - {PlayerHud.FormatTime(oPlayer.Stats.PB[style].RunTime)}");
+        player.PrintToChat($"{Config.PluginPrefix} MapTime ID: {ChatColors.Green}{oPlayer.Stats.PB[style].ID} - {PlayerHud.FormatTime(oPlayer.Stats.PB[style].RunTime, oPlayer.Settings.TimeFormat)}");
         player.PrintToChat($"{Config.PluginPrefix} Stage: {ChatColors.Green}{oPlayer.Timer.Stage}");
         player.PrintToChat($"{Config.PluginPrefix} IsStageMode: {ChatColors.Green}{oPlayer.Timer.IsStageMode}");
         player.PrintToChat($"{Config.PluginPrefix} IsRunning: {ChatColors.Green}{oPlayer.Timer.IsRunning}");
         player.PrintToChat($"{Config.PluginPrefix} Checkpoint: {ChatColors.Green}{oPlayer.Timer.Checkpoint}");
         player.PrintToChat($"{Config.PluginPrefix} Bonus: {ChatColors.Green}{oPlayer.Timer.Bonus}");
         player.PrintToChat($"{Config.PluginPrefix} Ticks: {ChatColors.Green}{oPlayer.Timer.Ticks}");
-        player.PrintToChat($"{Config.PluginPrefix} StagePB ID: {ChatColors.Green}{oPlayer.Stats.StagePB[1][style].ID} - {PlayerHud.FormatTime(oPlayer.Stats.StagePB[1][style].RunTime)}");
+        player.PrintToChat($"{Config.PluginPrefix} StagePB ID: {ChatColors.Green}{oPlayer.Stats.StagePB[1][style].ID} - {PlayerHud.FormatTime(oPlayer.Stats.StagePB[1][style].RunTime, oPlayer.Settings.TimeFormat)}");
 
 
         player.PrintToChat($"{Config.PluginPrefix}{ChatColors.Orange}====== MAP ======");
